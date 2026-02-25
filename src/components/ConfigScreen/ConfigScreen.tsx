@@ -3,6 +3,7 @@ import type { TournamentConfig, Category, ValidationError } from '@/types';
 import { DEFAULT_CONFIG, CATEGORY_STYLE } from '@/constants/auction';
 import { validateConfig } from '@/utils/auction';
 import { formatPts } from '@/utils/format';
+import { ImageUpload } from '@/components/ImageUpload/ImageUpload';
 import styles from './ConfigScreen.module.css';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -44,15 +45,28 @@ function Step1({ draft, onChange, errors }: Step1Props) {
       </p>
 
       <div className={styles.formGrid}>
-        <div className={styles.formGroup + ' ' + styles.formGroupFull}>
-          <label className={styles.label}>Tournament Name</label>
-          <input
-            className={styles.input}
-            value={draft.tournamentName}
-            maxLength={60}
-            placeholder="e.g. Premier Cricket League 2025"
-            onChange={(e) => onChange({ tournamentName: e.target.value })}
-          />
+        <div className={`${styles.formGroup} ${styles.formGroupFull} ${styles.logoRow}`}>
+          <div className={styles.logoCol}>
+            <ImageUpload
+              value={draft.logoBase64}
+              onChange={(v) => onChange({ logoBase64: v })}
+              label="Tournament Logo"
+              size={72}
+              circle={false}
+              maxDim={200}
+              placeholder="🏏"
+            />
+          </div>
+          <div className={styles.nameCol}>
+            <label className={styles.label}>Tournament Name</label>
+            <input
+              className={styles.input}
+              value={draft.tournamentName}
+              maxLength={60}
+              placeholder="e.g. Premier Cricket League 2025"
+              onChange={(e) => onChange({ tournamentName: e.target.value })}
+            />
+          </div>
         </div>
 
         <div className={styles.formGroup}>

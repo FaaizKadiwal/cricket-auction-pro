@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
-import type { TabId, Team, Player, SoldPlayer, TournamentConfig } from '@/types';
-import { DEFAULT_TEAM_COLORS, STORAGE_KEYS } from '@/constants/auction';
+import type { TabId, Team, Player, SoldPlayer, TournamentConfig, DemotionResult, Category } from '@/types';
+import { DEFAULT_TEAM_COLORS, STORAGE_KEYS, CATEGORIES } from '@/constants/auction';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useToast } from '@/hooks/useToast';
 import { TournamentProvider } from '@/context/TournamentContext';
@@ -119,12 +119,50 @@ export default function App() {
   );
 
   const handleUnsold = useCallback(
-    (playerId: number) => {
+    (playerId: number): DemotionResult => {
+      const player = players.find((p) => p.id === playerId);
+      if (!player) return { demoted: false };
+
+      const catIndex = CATEGORIES.indexOf(player.category);
+      const lowerCat: Category | null = catIndex < CATEGORIES.length - 1 ? CATEGORIES[catIndex + 1] : null;
+
+      if (lowerCat) {
+        const lowerCatPlayers = players.filter((p) => p.category === lowerCat && p.id !== playerId);
+        const newBasePrice = lowerCatPlayers.length > 0
+          ? Math.min(...lowerCatPlayers.map((p) => p.basePrice))
+          : config!.minBidReserve;
+
+        setPlayers((prev) =>
+          prev.map((p) =>
+            p.id === playerId
+              ? { ...p, status: 'pending' as const, category: lowerCat, basePrice: newBasePrice }
+              : p
+          )
+        );
+        return { demoted: true, newCategory: lowerCat, newBasePrice };
+      }
+
       setPlayers((prev) =>
-        prev.map((p) => (p.id === playerId ? { ...p, status: 'unsold' } : p))
+        prev.map((p) => (p.id === playerId ? { ...p, status: 'unsold' as const } : p))
       );
+      return { demoted: false };
     },
-    [setPlayers]
+    [players, config, setPlayers]
+  );
+
+  const handleUndoLastSale = useCallback(
+    (): SoldPlayer | null => {
+      const current = soldPlayers;
+      if (current.length === 0) return null;
+
+      const lastSold = current[current.length - 1];
+      setSoldPlayers((prev) => prev.slice(0, -1));
+      setPlayers((prev) =>
+        prev.map((p) => (p.id === lastSold.id ? { ...p, status: 'pending' as const } : p))
+      );
+      return lastSold;
+    },
+    [soldPlayers, setSoldPlayers, setPlayers]
   );
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -170,6 +208,7 @@ export default function App() {
                 soldPlayers={soldPlayers}
                 onSell={handleSell}
                 onUnsold={handleUnsold}
+                onUndoLastSale={handleUndoLastSale}
                 onToast={showToast}
               />
             </ErrorBoundary>

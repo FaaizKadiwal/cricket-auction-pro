@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import type { Team, Player, SoldPlayer, Category } from '@/types';
+import type { Team, Player, SoldPlayer, Category, DemotionResult } from '@/types';
 import type { BidIncrement } from '@/constants/auction';
 import { CATEGORY_STYLE, CATEGORIES } from '@/constants/auction';
 import { getBidCap, getSquad, getSpent, getCatCount, validateBid } from '@/utils/auction';
@@ -18,18 +18,24 @@ interface LogEntry {
   player: string;
 }
 
+interface BidSnapshot {
+  bid: number;
+  teamId: number | null;
+}
+
 interface AuctionTabProps {
   teams: Team[];
   players: Player[];
   soldPlayers: SoldPlayer[];
   onSell: (player: Player, teamId: number, finalPrice: number) => void;
-  onUnsold: (playerId: number) => void;
+  onUnsold: (playerId: number) => DemotionResult;
+  onUndoLastSale: () => SoldPlayer | null;
   onToast: (msg: string, type: 'ok' | 'warn') => void;
 }
 
 // ─── AuctionTab ───────────────────────────────────────────────────────────────
 
-export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onToast }: AuctionTabProps) {
+export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUndoLastSale, onToast }: AuctionTabProps) {
   const { config } = useTournament();
   const squadSize  = config.playersPerTeam - 1;
 
@@ -38,6 +44,7 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onTo
   const [leadingTeamId, setLeadingTeamId] = useState<number | null>(null);
   const [filterCat,     setFilterCat]     = useState<Category | 'All'>('All');
   const [log,           setLog]           = useState<LogEntry[]>([]);
+  const [bidHistory,    setBidHistory]    = useState<BidSnapshot[]>([]);
 
   const pending       = useMemo(() => players.filter((p) => p.status === 'pending'), [players]);
   const displayPending = useMemo(
@@ -58,6 +65,7 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onTo
     setCurrentBid(player.basePrice);
     setLeadingTeamId(null);
     setLog([]);
+    setBidHistory([]);
   }, []);
 
   const handleBid = useCallback((teamId: number, increment: BidIncrement) => {
@@ -70,13 +78,18 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onTo
       onToast(`🔒 ${team.name}: ${result.reason}`, 'warn');
       return;
     }
+    setBidHistory((prev) => [...prev, { bid: currentBid, teamId: leadingTeamId }]);
     setCurrentBid(newBid);
     setLeadingTeamId(teamId);
     setLog((prev) => [
       { teamName: team.name, teamColor: team.color, bid: newBid, player: currentPlayer.name },
       ...prev.slice(0, 59),
     ]);
-  }, [currentPlayer, currentBid, teams, soldPlayers, config, onToast]);
+  }, [currentPlayer, currentBid, leadingTeamId, teams, soldPlayers, config, onToast]);
+
+  const resetStage = useCallback(() => {
+    setCurrentPlayer(null); setCurrentBid(0); setLeadingTeamId(null); setLog([]); setBidHistory([]);
+  }, []);
 
   const confirmSale = useCallback(() => {
     if (!currentPlayer || !leadingTeamId) { onToast('No bid placed yet.', 'warn'); return; }
@@ -85,18 +98,43 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onTo
     onSell(currentPlayer, leadingTeamId, currentBid);
     onToast(`✅ ${currentPlayer.name} SOLD to ${team.name} for ${formatPts(currentBid)} pts!`, 'ok');
     resetStage();
-  }, [currentPlayer, leadingTeamId, currentBid, teams, onSell, onToast]);
+  }, [currentPlayer, leadingTeamId, currentBid, teams, onSell, onToast, resetStage]);
 
   const markUnsold = useCallback(() => {
     if (!currentPlayer) return;
-    onUnsold(currentPlayer.id);
-    onToast(`❌ ${currentPlayer.name} — UNSOLD`, 'warn');
+    const result = onUnsold(currentPlayer.id);
+    if (result.demoted) {
+      onToast(`⬇️ ${currentPlayer.name} moved to ${result.newCategory} (Base: ${formatPts(result.newBasePrice!)} pts)`, 'warn');
+    } else {
+      onToast(`❌ ${currentPlayer.name} — UNSOLD`, 'warn');
+    }
     resetStage();
-  }, [currentPlayer, onUnsold, onToast]);
+  }, [currentPlayer, onUnsold, onToast, resetStage]);
 
-  const resetStage = useCallback(() => {
-    setCurrentPlayer(null); setCurrentBid(0); setLeadingTeamId(null); setLog([]);
-  }, []);
+  const undoLastBid = useCallback(() => {
+    if (bidHistory.length === 0) return;
+    const prev = bidHistory[bidHistory.length - 1];
+    setBidHistory((h) => h.slice(0, -1));
+    setCurrentBid(prev.bid);
+    setLeadingTeamId(prev.teamId);
+    setLog((l) => l.slice(1));
+  }, [bidHistory]);
+
+  const restartBidding = useCallback(() => {
+    if (!currentPlayer) return;
+    setCurrentBid(currentPlayer.basePrice);
+    setLeadingTeamId(null);
+    setLog([]);
+    setBidHistory([]);
+    onToast(`🔄 Bidding restarted for ${currentPlayer.name}`, 'warn');
+  }, [currentPlayer, onToast]);
+
+  const handleUndoSale = useCallback(() => {
+    const undone = onUndoLastSale();
+    if (undone) {
+      onToast(`↩️ Sale undone — ${undone.name} returned to pool`, 'warn');
+    }
+  }, [onUndoLastSale, onToast]);
 
   return (
     <main aria-label="Live auction">
@@ -137,6 +175,11 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onTo
                   <div className={styles.emptyIcon} aria-hidden="true">🎯</div>
                   <p className={styles.emptyTitle}>Select a player to open bidding</p>
                   <p style={{ fontSize: 13 }}>{pending.length} player{pending.length !== 1 ? 's' : ''} remaining</p>
+                  {soldPlayers.length > 0 && (
+                    <button className={styles.btnUndoSale} onClick={handleUndoSale}>
+                      ↩ Undo Last Sale ({soldPlayers[soldPlayers.length - 1].name})
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -205,12 +248,20 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onTo
                   ))}
                 </div>
 
-                <div className={styles.actionRow}>
-                  <button className={styles.btnSold} onClick={confirmSale} disabled={!leadingTeamId}>
-                    🔨 SOLD{leadingTeam ? ` — ${leadingTeam.name}` : ''}
-                  </button>
-                  <button className={styles.btnUnsold} onClick={markUnsold}>❌ Unsold</button>
-                  <button className={styles.btnCancel} onClick={resetStage}>← Cancel</button>
+                <div className={styles.actionArea}>
+                  <div className={styles.actionRow}>
+                    <button className={styles.btnSold} onClick={confirmSale} disabled={!leadingTeamId}>
+                      🔨 SOLD{leadingTeam ? ` — ${leadingTeam.name}` : ''}
+                    </button>
+                    <button className={styles.btnUnsold} onClick={markUnsold}>❌ Unsold</button>
+                  </div>
+                  <div className={styles.actionRowSecondary}>
+                    <button className={styles.btnUndo} onClick={undoLastBid} disabled={bidHistory.length === 0}>
+                      ↩ Undo Bid
+                    </button>
+                    <button className={styles.btnRestart} onClick={restartBidding}>🔄 Restart</button>
+                    <button className={styles.btnCancel} onClick={resetStage}>← Cancel</button>
+                  </div>
                 </div>
               </div>
             )}

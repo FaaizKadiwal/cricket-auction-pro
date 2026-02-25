@@ -19,7 +19,11 @@ export function Header({ activeTab, onTabChange, soldPlayers, onReset }: HeaderP
   return (
     <header className={styles.header} role="banner">
       <div className={styles.logoWrap}>
-        <span className={styles.logoIcon} aria-hidden="true">🏏</span>
+        {config.logoBase64 ? (
+          <img src={config.logoBase64} alt="Tournament logo" className={styles.logoImg} />
+        ) : (
+          <span className={styles.logoIcon} aria-hidden="true">🏏</span>
+        )}
         <div>
           <div className={styles.logoText}>{config.tournamentName || 'Cricket Auction'}</div>
           <div className={styles.logoSub}>Tournament Management System</div>

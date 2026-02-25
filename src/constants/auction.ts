@@ -13,6 +13,7 @@ export const DEFAULT_CONFIG: TournamentConfig = {
     Silver: { max: 4 },
     Bronze: { max: 4 },
   },
+  logoBase64: null,
 };
 
 // ─── Derived Helpers ──────────────────────────────────────────────────────────

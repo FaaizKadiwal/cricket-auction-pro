@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { Team, SoldPlayer, Category } from '@/types';
+import type { Team, SoldPlayer } from '@/types';
 import { CATEGORY_STYLE, CATEGORIES } from '@/constants/auction';
 import { getSquad, getSpent, getCatCount } from '@/utils/auction';
 import { formatPts } from '@/utils/format';

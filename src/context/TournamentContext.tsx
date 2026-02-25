@@ -33,6 +33,7 @@ export function TournamentProvider({ config, children }: TournamentProviderProps
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useTournament(): TournamentContextValue {
   return useContext(TournamentContext);
 }

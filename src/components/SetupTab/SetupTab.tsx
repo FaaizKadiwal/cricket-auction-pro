@@ -226,7 +226,7 @@ function PlayerTable({ players, onRemove }: PlayerTableProps) {
                     name={p.name}
                     size={32}
                     color={color}
-                    circle={true}
+                    square={false}
                   />
                   <div>
                     <div className={styles.playerName}>{p.name}</div>

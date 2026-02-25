@@ -20,6 +20,15 @@
 
 .logoIcon { font-size: 24px; line-height: 1; }
 
+.logoImg {
+  height: 36px;
+  width: auto;
+  max-width: 64px;
+  object-fit: contain;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
 .logoText {
   font-family: var(--font-display);
   font-size: 22px;

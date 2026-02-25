@@ -18,6 +18,7 @@ export interface TournamentConfig {
   budget: number;            // per team, e.g. 3000
   minBidReserve: number;     // held per remaining slot, e.g. 100
   categoryLimits: Record<Category, CategoryLimit>;
+  logoBase64: string | null; // tournament logo image
 }
 
 // ─── Entity Interfaces ────────────────────────────────────────────────────────
@@ -46,6 +47,14 @@ export interface SoldPlayer extends Player {
   teamName: string;
   teamColor: string;
   finalPrice: number;
+}
+
+// ─── Auction Result Types ─────────────────────────────────────────────────────
+
+export interface DemotionResult {
+  demoted: boolean;
+  newCategory?: Category;
+  newBasePrice?: number;
 }
 
 // ─── UI State ─────────────────────────────────────────────────────────────────

@@ -72,7 +72,9 @@
 }
 
 /* Action buttons */
+.actionArea { display: flex; flex-direction: column; gap: 8px; align-items: center; }
 .actionRow { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.actionRowSecondary { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
 
 .btnSold {
   padding: 11px 24px; background: var(--success); color: #000;
@@ -89,12 +91,36 @@
 }
 .btnUnsold:hover { background: var(--danger-hover); }
 
+.btnUndo {
+  padding: 11px 18px; background: rgba(255,165,2,0.1); color: var(--warning);
+  border: 1px solid rgba(255,165,2,0.3); border-radius: 8px; font-family: var(--font-body);
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+}
+.btnUndo:hover:not(:disabled) { background: rgba(255,165,2,0.2); border-color: var(--warning); }
+.btnUndo:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.btnRestart {
+  padding: 11px 18px; background: rgba(0,212,255,0.08); color: var(--accent);
+  border: 1px solid rgba(0,212,255,0.25); border-radius: 8px; font-family: var(--font-body);
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+}
+.btnRestart:hover { background: rgba(0,212,255,0.18); border-color: var(--accent); }
+
 .btnCancel {
   padding: 11px 18px; background: var(--surface2); color: var(--text);
   border: 1px solid var(--border); border-radius: 8px; font-family: var(--font-body);
   font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s;
 }
 .btnCancel:hover { border-color: var(--accent); color: var(--accent); }
+
+.btnUndoSale {
+  margin-top: 16px; padding: 10px 20px;
+  background: rgba(255,165,2,0.08); color: var(--warning);
+  border: 1px solid rgba(255,165,2,0.25); border-radius: 8px;
+  font-family: var(--font-body); font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s;
+}
+.btnUndoSale:hover { background: rgba(255,165,2,0.18); border-color: var(--warning); }
 
 /* Empty stage */
 .emptyStage { color: var(--muted); }
@@ -234,4 +260,6 @@
   .playerName { font-size: 30px; }
   .bidAmount  { font-size: 40px; }
   .sidebar { grid-template-columns: 1fr; }
+  .btnSold, .btnUnsold, .btnUndo, .btnRestart, .btnCancel { font-size: 12px; padding: 9px 14px; }
+  .btnUndoSale { font-size: 12px; padding: 8px 16px; }
 }
