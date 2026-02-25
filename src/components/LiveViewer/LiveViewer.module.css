@@ -8,9 +8,10 @@
   display: flex;
   flex-direction: column;
 
-  /* Stadium base gradient (deep navy → indigo) */
+  /* Stadium background image with dark overlay */
   background:
-    linear-gradient(160deg, #050518 0%, #0a0a2a 35%, #0d0825 70%, #080518 100%);
+    linear-gradient(160deg, rgba(5, 5, 24, 0.70) 0%, rgba(10, 10, 42, 0.65) 35%, rgba(13, 8, 37, 0.70) 70%, rgba(8, 5, 24, 0.75) 100%),
+    url('@/assets/background.png') center / cover no-repeat;
   color: var(--text);
   font-family: var(--font-body);
 }
