@@ -97,7 +97,7 @@ export function LiveViewerApp() {
 
     // ── All other phases: show directly
     setDisplayPhase(dataPhase);
-  }, [state.phase]);
+  }, [state.phase, state.soldPlayers.length]);
 
   // Cleanup on unmount
   useEffect(() => () => clearTimers(), []);
