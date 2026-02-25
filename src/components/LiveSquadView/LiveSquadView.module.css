@@ -1,0 +1,174 @@
+/* ─── Squad View Layout ───────────────────────────────────────────────────── */
+
+.container {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  padding: 20px 32px;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 36px;
+  letter-spacing: 6px;
+  color: var(--text);
+  text-align: center;
+  margin: 0 0 20px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ─── Team Card ───────────────────────────────────────────────────────────── */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  background: rgba(12, 12, 30, 0.75);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(42, 42, 63, 0.5);
+  border-top: 3px solid;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-bottom: 1px solid rgba(42, 42, 63, 0.4);
+}
+
+.headerInfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.teamName {
+  font-family: var(--font-display);
+  font-size: 20px;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.captain {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.sizeBadge {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 212, 255, 0.1);
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.sizeFull {
+  background: rgba(46, 213, 115, 0.15);
+  color: var(--success);
+}
+
+/* ─── Player list ─────────────────────────────────────────────────────────── */
+
+.playerList {
+  flex: 1;
+  padding: 8px 12px;
+  min-height: 60px;
+}
+
+.emptyNote {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+  margin: 12px 0;
+}
+
+.playerRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.catDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.pName {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pPrice {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent);
+}
+
+/* ─── Footer ──────────────────────────────────────────────────────────────── */
+
+.cardFooter {
+  padding: 8px 12px;
+  background: rgba(5, 5, 20, 0.5);
+  border-top: 1px solid rgba(42, 42, 63, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.footerStat {
+  display: flex;
+  flex-direction: column;
+}
+
+.footerLabel {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+
+.footerValue {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.catPills {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.catPill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border: 1px solid;
+  border-radius: var(--radius-sm);
+}

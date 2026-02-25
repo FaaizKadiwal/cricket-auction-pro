@@ -50,6 +50,10 @@ export const DEFAULT_TEAM_COLORS: string[] = [
   '#ff006e', '#fb5607',
 ];
 
+// ─── Live Viewer Channel ──────────────────────────────────────────────────
+
+export const LIVE_CHANNEL_NAME = 'cap_live_auction';
+
 // ─── Storage Keys ─────────────────────────────────────────────────────────────
 
 export const STORAGE_KEYS = {

@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import type { Team, Player, SoldPlayer, Category, DemotionResult } from '@/types';
 import type { BidIncrement } from '@/constants/auction';
+import type { BroadcastHandle } from '@/hooks/useBroadcast';
 import { CATEGORY_STYLE, CATEGORIES } from '@/constants/auction';
 import { getBidCap, getSquad, getSpent, getCatCount, validateBid } from '@/utils/auction';
 import { formatPts, formatPct, getBarColorToken } from '@/utils/format';
@@ -31,11 +32,12 @@ interface AuctionTabProps {
   onUnsold: (playerId: number) => DemotionResult;
   onUndoLastSale: () => SoldPlayer | null;
   onToast: (msg: string, type: 'ok' | 'warn') => void;
+  broadcast?: BroadcastHandle;
 }
 
 // ─── AuctionTab ───────────────────────────────────────────────────────────────
 
-export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUndoLastSale, onToast }: AuctionTabProps) {
+export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUndoLastSale, onToast, broadcast }: AuctionTabProps) {
   const { config } = useTournament();
   const squadSize  = config.playersPerTeam - 1;
 
@@ -66,7 +68,8 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
     setLeadingTeamId(null);
     setLog([]);
     setBidHistory([]);
-  }, []);
+    broadcast?.broadcastBiddingStart(player, player.basePrice);
+  }, [broadcast]);
 
   const handleBid = useCallback((teamId: number, increment: BidIncrement) => {
     if (!currentPlayer) return;
@@ -85,31 +88,55 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
       { teamName: team.name, teamColor: team.color, bid: newBid, player: currentPlayer.name },
       ...prev.slice(0, 59),
     ]);
-  }, [currentPlayer, currentBid, leadingTeamId, teams, soldPlayers, config, onToast]);
+    broadcast?.broadcastBidUpdate(newBid, teamId, { teamName: team.name, teamColor: team.color, bid: newBid });
+  }, [currentPlayer, currentBid, leadingTeamId, teams, soldPlayers, config, onToast, broadcast]);
 
   const resetStage = useCallback(() => {
     setCurrentPlayer(null); setCurrentBid(0); setLeadingTeamId(null); setLog([]); setBidHistory([]);
-  }, []);
+    broadcast?.broadcastBiddingCancel();
+  }, [broadcast]);
 
   const confirmSale = useCallback(() => {
     if (!currentPlayer || !leadingTeamId) { onToast('No bid placed yet.', 'warn'); return; }
     const team = teams.find((t) => t.id === leadingTeamId);
     if (!team) return;
     onSell(currentPlayer, leadingTeamId, currentBid);
+
+    // Broadcast SOLD before resetStage (which broadcasts CANCEL)
+    const soldPayload = {
+      player: currentPlayer,
+      teamId: leadingTeamId,
+      teamName: team.name,
+      teamColor: team.color,
+      teamLogoBase64: team.logoBase64,
+      finalPrice: currentBid,
+    };
+    const updatedSold = [...soldPlayers, { ...currentPlayer, status: 'sold' as const, teamId: leadingTeamId, teamName: team.name, teamColor: team.color, finalPrice: currentBid }];
+    const updatedPlayers = players.map((p) => p.id === currentPlayer.id ? { ...p, status: 'sold' as const } : p);
+    broadcast?.broadcastSold(soldPayload, updatedSold, updatedPlayers);
+
     onToast(`✅ ${currentPlayer.name} SOLD to ${team.name} for ${formatPts(currentBid)} pts!`, 'ok');
-    resetStage();
-  }, [currentPlayer, leadingTeamId, currentBid, teams, onSell, onToast, resetStage]);
+    // Reset stage without broadcasting cancel (sale broadcast takes priority)
+    setCurrentPlayer(null); setCurrentBid(0); setLeadingTeamId(null); setLog([]); setBidHistory([]);
+  }, [currentPlayer, leadingTeamId, currentBid, teams, soldPlayers, players, onSell, onToast, broadcast]);
 
   const markUnsold = useCallback(() => {
     if (!currentPlayer) return;
+    const playerName = currentPlayer.name;
     const result = onUnsold(currentPlayer.id);
     if (result.demoted) {
-      onToast(`⬇️ ${currentPlayer.name} moved to ${result.newCategory} (Base: ${formatPts(result.newBasePrice!)} pts)`, 'warn');
+      onToast(`⬇️ ${playerName} moved to ${result.newCategory} (Base: ${formatPts(result.newBasePrice!)} pts)`, 'warn');
     } else {
-      onToast(`❌ ${currentPlayer.name} — UNSOLD`, 'warn');
+      onToast(`❌ ${playerName} — UNSOLD`, 'warn');
     }
-    resetStage();
-  }, [currentPlayer, onUnsold, onToast, resetStage]);
+    // Broadcast unsold with locally computed updated players
+    const updatedPlayers = result.demoted
+      ? players.map((p) => p.id === currentPlayer.id ? { ...p, status: 'pending' as const, category: result.newCategory!, basePrice: result.newBasePrice! } : p)
+      : players.map((p) => p.id === currentPlayer.id ? { ...p, status: 'unsold' as const } : p);
+    broadcast?.broadcastUnsold(playerName, result.demoted, result.newCategory, updatedPlayers);
+    // Reset stage without broadcasting cancel
+    setCurrentPlayer(null); setCurrentBid(0); setLeadingTeamId(null); setLog([]); setBidHistory([]);
+  }, [currentPlayer, players, onUnsold, onToast, broadcast]);
 
   const undoLastBid = useCallback(() => {
     if (bidHistory.length === 0) return;
@@ -133,8 +160,11 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
     const undone = onUndoLastSale();
     if (undone) {
       onToast(`↩️ Sale undone — ${undone.name} returned to pool`, 'warn');
+      const updatedSold = soldPlayers.filter((s) => s.id !== undone.id);
+      const updatedPlayers = players.map((p) => p.id === undone.id ? { ...p, status: 'pending' as const } : p);
+      broadcast?.broadcastUndoSale(updatedSold, updatedPlayers);
     }
-  }, [onUndoLastSale, onToast]);
+  }, [onUndoLastSale, onToast, soldPlayers, players, broadcast]);
 
   return (
     <main aria-label="Live auction">
@@ -179,6 +209,17 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
                     <button className={styles.btnUndoSale} onClick={handleUndoSale}>
                       ↩ Undo Last Sale ({soldPlayers[soldPlayers.length - 1].name})
                     </button>
+                  )}
+                  {broadcast && (
+                    <div className={styles.liveControls}>
+                      <span className={styles.liveControlLabel}>Live Viewer:</span>
+                      <button className={styles.btnLiveSquads} onClick={() => broadcast.broadcastShowSquads()}>
+                        👥 Show Squads
+                      </button>
+                      <button className={styles.btnLiveIdle} onClick={() => broadcast.broadcastShowIdle()}>
+                        🏏 Show Logo
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>

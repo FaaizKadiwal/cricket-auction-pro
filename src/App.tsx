@@ -3,6 +3,7 @@ import type { TabId, Team, Player, SoldPlayer, TournamentConfig, DemotionResult,
 import { DEFAULT_TEAM_COLORS, STORAGE_KEYS, CATEGORIES } from '@/constants/auction';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useToast } from '@/hooks/useToast';
+import { useBroadcast } from '@/hooks/useBroadcast';
 import { TournamentProvider } from '@/context/TournamentContext';
 import { ConfigScreen } from '@/components/ConfigScreen/ConfigScreen';
 import { Header } from '@/components/Header/Header';
@@ -54,6 +55,14 @@ export default function App() {
   const [soldPlayers, setSoldPlayers] = useLocalStorage<SoldPlayer[]>(STORAGE_KEYS.SOLD_PLAYERS, []);
 
   const { toasts, showToast, dismissToast } = useToast(5000);
+
+  // Live viewer broadcast (only active when config exists)
+  const broadcast = useBroadcast({
+    config: config ?? { tournamentName: '', totalTeams: 0, playersPerTeam: 0, budget: 0, minBidReserve: 0, categoryLimits: { Gold: { max: 0 }, Silver: { max: 0 }, Bronze: { max: 0 } }, logoBase64: null },
+    teams,
+    players,
+    soldPlayers,
+  });
 
   // ── Config Wizard ──────────────────────────────────────────────────────────
 
@@ -210,6 +219,7 @@ export default function App() {
                 onUnsold={handleUnsold}
                 onUndoLastSale={handleUndoLastSale}
                 onToast={showToast}
+                broadcast={broadcast}
               />
             </ErrorBoundary>
           )}

@@ -1,0 +1,73 @@
+/* ─── Unsold / Demoted Overlay ─────────────────────────────────────────────── */
+
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  animation: unsoldDisplay 3s ease forwards;
+}
+
+@keyframes unsoldDisplay {
+  0%   { opacity: 0; transform: scale(0.9); }
+  12%  { opacity: 1; transform: scale(1); }
+  80%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ─── Unsold state ────────────────────────────────────────────────────────── */
+
+.unsoldText {
+  font-family: var(--font-display);
+  font-size: 96px;
+  letter-spacing: 8px;
+  color: var(--danger);
+  text-shadow: 0 0 40px rgba(255, 71, 87, 0.3);
+}
+
+/* ─── Demoted state ───────────────────────────────────────────────────────── */
+
+.demotedIcon {
+  color: var(--warning);
+  animation: arrowBounce 0.6s ease-out;
+}
+
+@keyframes arrowBounce {
+  0%   { transform: translateY(-20px); opacity: 0; }
+  60%  { transform: translateY(4px); }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.demotedText {
+  font-family: var(--font-display);
+  font-size: 72px;
+  letter-spacing: 6px;
+  color: var(--warning);
+  text-shadow: 0 0 30px rgba(255, 165, 2, 0.3);
+}
+
+/* ─── Shared ──────────────────────────────────────────────────────────────── */
+
+.playerName {
+  font-family: var(--font-display);
+  font-size: 42px;
+  letter-spacing: 3px;
+  color: var(--text);
+}
+
+.newCat {
+  font-family: var(--font-display);
+  font-size: 20px;
+  letter-spacing: 3px;
+  padding: 8px 24px;
+  border-radius: var(--radius-pill);
+  border: 1px solid;
+}

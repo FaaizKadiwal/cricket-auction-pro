@@ -1,0 +1,200 @@
+/* ─── Sold Overlay ────────────────────────────────────────────────────────── */
+
+.overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+}
+
+/* ─── SOLD Stamp ──────────────────────────────────────────────────────────── */
+
+.stampArea {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 140px;
+}
+
+.soldText {
+  font-family: var(--font-display);
+  font-size: 120px;
+  letter-spacing: 12px;
+  color: #00ff88;
+  text-shadow:
+    0 0 40px rgba(0, 255, 136, 0.4),
+    0 0 80px rgba(0, 255, 136, 0.2);
+  animation: soldStamp 0.7s ease-out forwards;
+}
+
+@keyframes soldStamp {
+  0%   { transform: scale(3) rotate(-12deg); opacity: 0; }
+  40%  { transform: scale(0.92) rotate(2deg); opacity: 1; }
+  60%  { transform: scale(1.06) rotate(-1deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+/* ─── Particles ───────────────────────────────────────────────────────────── */
+
+.particle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: particleBurst 0.9s ease-out forwards;
+  animation-delay: var(--delay, 0s);
+  opacity: 0;
+}
+
+@keyframes particleBurst {
+  0%   { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+}
+
+/* ─── Player row ──────────────────────────────────────────────────────────── */
+
+.playerRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  animation: fadeSlideUp 0.5s 0.4s ease-out both;
+}
+
+.playerInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.playerName {
+  font-family: var(--font-display);
+  font-size: 36px;
+  letter-spacing: 2px;
+  color: var(--text);
+}
+
+.playerCat {
+  font-family: var(--font-body);
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+}
+
+/* ─── Divider ─────────────────────────────────────────────────────────────── */
+
+.divider {
+  width: 200px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 180, 255, 0.3), transparent);
+  animation: fadeSlideUp 0.5s 0.5s ease-out both;
+}
+
+/* ─── Team row ────────────────────────────────────────────────────────────── */
+
+.teamRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  animation: fadeSlideUp 0.5s 0.6s ease-out both;
+}
+
+.teamName {
+  font-family: var(--font-display);
+  font-size: 36px;
+  letter-spacing: 2px;
+}
+
+/* ─── Price tag ───────────────────────────────────────────────────────────── */
+
+.priceTag {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 40px;
+  background: rgba(12, 12, 30, 0.7);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: var(--radius-xl);
+  animation: fadeSlideUp 0.5s 0.7s ease-out both;
+}
+
+.priceLabel {
+  font-size: 10px;
+  letter-spacing: 4px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.priceValue {
+  font-family: var(--font-mono);
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--accent);
+  text-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+}
+
+/* ─── Side team logos (slam-in from edges) ────────────────────────────────── */
+
+.sideLogoLeft,
+.sideLogoRight {
+  position: absolute;
+  top: 50%;
+  z-index: 0;
+}
+
+.sideLogoLeft {
+  left: 8%;
+  animation: slamFromLeft 0.6s 0.3s cubic-bezier(0.22, 1.2, 0.36, 1) both;
+}
+
+.sideLogoRight {
+  right: 8%;
+  animation: slamFromRight 0.6s 0.3s cubic-bezier(0.22, 1.2, 0.36, 1) both;
+}
+
+.sideLogoImg {
+  border-radius: var(--radius-lg) !important;
+  box-shadow:
+    0 0 40px color-mix(in srgb, var(--team-glow) 35%, transparent),
+    0 0 80px color-mix(in srgb, var(--team-glow) 15%, transparent);
+  animation: logoFloat 2.4s 0.9s ease-in-out infinite;
+}
+
+@keyframes slamFromLeft {
+  0%   { opacity: 0; transform: translateY(-50%) translateX(-200px) scale(2) rotate(15deg); }
+  50%  { opacity: 1; transform: translateY(-50%) translateX(10px) scale(0.9) rotate(-3deg); }
+  70%  { transform: translateY(-50%) translateX(-5px) scale(1.05) rotate(1deg); }
+  100% { opacity: 1; transform: translateY(-50%) translateX(0) scale(1) rotate(0deg); }
+}
+
+@keyframes slamFromRight {
+  0%   { opacity: 0; transform: translateY(-50%) translateX(200px) scale(2) rotate(-15deg); }
+  50%  { opacity: 1; transform: translateY(-50%) translateX(-10px) scale(0.9) rotate(3deg); }
+  70%  { transform: translateY(-50%) translateX(5px) scale(1.05) rotate(-1deg); }
+  100% { opacity: 1; transform: translateY(-50%) translateX(0) scale(1) rotate(0deg); }
+}
+
+@keyframes logoFloat {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    box-shadow:
+      0 0 40px color-mix(in srgb, var(--team-glow) 35%, transparent),
+      0 0 80px color-mix(in srgb, var(--team-glow) 15%, transparent);
+  }
+  50% {
+    transform: translateY(-10px) scale(1.08);
+    box-shadow:
+      0 0 60px color-mix(in srgb, var(--team-glow) 50%, transparent),
+      0 0 120px color-mix(in srgb, var(--team-glow) 25%, transparent);
+  }
+}
+
+/* ─── Shared animation ────────────────────────────────────────────────────── */
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

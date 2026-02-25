@@ -1,0 +1,99 @@
+/* ─── Logo Transition (loading between phases) ────────────────────────────── */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  position: relative;
+}
+
+/* ─── Spinning rings ──────────────────────────────────────────────────────── */
+
+.ring,
+.ringOuter {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.ring {
+  width: 200px;
+  height: 200px;
+  border-top-color: var(--accent);
+  border-right-color: rgba(0, 212, 255, 0.3);
+  animation: spinRing 1.2s linear infinite;
+}
+
+.ringOuter {
+  width: 240px;
+  height: 240px;
+  border-bottom-color: rgba(0, 180, 255, 0.4);
+  border-left-color: rgba(0, 180, 255, 0.15);
+  animation: spinRingReverse 1.8s linear infinite;
+}
+
+@keyframes spinRing {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes spinRingReverse {
+  to { transform: rotate(-360deg); }
+}
+
+/* ─── Logo ────────────────────────────────────────────────────────────────── */
+
+.logoWrap {
+  position: relative;
+  z-index: 2;
+  animation: logoFadeIn 0.4s ease-out forwards;
+}
+
+.logo {
+  border-radius: var(--radius-lg) !important;
+  box-shadow: 0 0 50px rgba(0, 212, 255, 0.25);
+}
+
+.logoFallback {
+  width: 140px;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 64px;
+  background: rgba(0, 212, 255, 0.08);
+  border: 2px solid rgba(0, 212, 255, 0.2);
+  border-radius: var(--radius-lg);
+}
+
+@keyframes logoFadeIn {
+  from { opacity: 0; transform: scale(0.8); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ─── Loading dots ────────────────────────────────────────────────────────── */
+
+.dots {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: dotBounce 1.2s ease-in-out infinite;
+}
+
+.dot:nth-child(2) { animation-delay: 0.15s; }
+.dot:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes dotBounce {
+  0%, 80%, 100% { opacity: 0.2; transform: scale(0.7); }
+  40%           { opacity: 1; transform: scale(1.3); }
+}
