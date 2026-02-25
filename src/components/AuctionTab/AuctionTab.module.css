@@ -1,0 +1,237 @@
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 24px;
+  align-items: start;
+}
+
+/* ─── Stats ──────────────────────────────────────────────────────────────────── */
+.statsBar {
+  display: flex; gap: 20px; align-items: center;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 12px 20px;
+  margin-bottom: 20px; flex-wrap: wrap;
+}
+.statItem { display: flex; flex-direction: column; }
+.statLabel { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+.statValue { font-family: var(--font-display); font-size: 20px; letter-spacing: 1px; }
+.statDivider { width: 1px; background: var(--border); align-self: stretch; }
+
+/* ─── Stage ──────────────────────────────────────────────────────────────────── */
+.stage {
+  background: linear-gradient(160deg,#0d1117,#12121a 50%,#0d0d1a);
+  border: 1px solid var(--border); border-radius: 20px; padding: 28px 24px;
+  text-align: center; position: relative; overflow: hidden;
+  min-height: 520px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.stageGlow {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 0%,rgba(0,212,255,.07),transparent 70%);
+  pointer-events: none;
+}
+.stageContent { position: relative; z-index: 1; width: 100%; }
+
+/* Player on stage */
+.playerPhoto {
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  border: 3px solid;
+}
+
+.playerCatLabel {
+  font-family: var(--font-display);
+  font-size: 11px; letter-spacing: 4px;
+  margin-bottom: 8px; padding: 3px 16px;
+  border-radius: 20px; display: inline-block;
+}
+
+.playerName {
+  font-family: var(--font-display);
+  font-size: 50px; letter-spacing: 2px; line-height: 1; margin-bottom: 6px;
+}
+
+.playerBase { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+
+/* Bid display */
+.bidDisplay {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 16px; padding: 14px 28px; margin-bottom: 16px; display: inline-block;
+}
+.bidLabel  { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); }
+.bidAmount { font-family: var(--font-display); font-size: 52px; letter-spacing: 2px; line-height: 1.1; }
+.bidLeader { font-size: 12px; color: var(--muted); margin-top: 3px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+
+/* Teams grid */
+.bidTeamsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px; margin-bottom: 16px;
+}
+
+/* Action buttons */
+.actionRow { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+.btnSold {
+  padding: 11px 24px; background: var(--success); color: #000;
+  border: none; border-radius: 8px; font-family: var(--font-body);
+  font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.15s;
+}
+.btnSold:not(:disabled):hover { background: var(--success-hover); }
+.btnSold:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.btnUnsold {
+  padding: 11px 18px; background: var(--danger); color: #fff;
+  border: none; border-radius: 8px; font-family: var(--font-body);
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s;
+}
+.btnUnsold:hover { background: var(--danger-hover); }
+
+.btnCancel {
+  padding: 11px 18px; background: var(--surface2); color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px; font-family: var(--font-body);
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+}
+.btnCancel:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Empty stage */
+.emptyStage { color: var(--muted); }
+.emptyIcon  { font-size: 44px; margin-bottom: 14px; }
+.emptyTitle { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+
+/* ─── Pool card ──────────────────────────────────────────────────────────────── */
+.poolCard {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; padding: 18px; margin-top: 16px;
+}
+.poolHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+.poolTitle { font-family: var(--font-display); font-size: 17px; letter-spacing: 1px; color: var(--accent); }
+.filterRow { display: flex; gap: 6px; flex-wrap: wrap; }
+.filterBtn {
+  padding: 4px 12px; border-radius: 6px; font-family: var(--font-body);
+  font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; border: 1px solid;
+}
+
+.poolTable { width: 100%; border-collapse: collapse; }
+.poolTable th {
+  text-align: left; padding: 8px 10px; font-size: 10px; font-weight: 600;
+  color: var(--muted); letter-spacing: 2px; text-transform: uppercase; border-bottom: 1px solid var(--border);
+}
+.poolTable td { padding: 8px 10px; border-bottom: 1px solid rgba(42,42,63,.4); font-size: 13px; }
+.poolTable tr:hover td { background: var(--surface2); }
+
+.playerInfoCell { display: flex; align-items: center; gap: 8px; }
+
+.openBidBtn {
+  padding: 4px 12px; background: var(--accent); color: #000;
+  border: none; border-radius: 6px; font-family: var(--font-body);
+  font-size: 11px; font-weight: 700; cursor: pointer; transition: background 0.15s;
+}
+.openBidBtn:hover:not(:disabled) { background: var(--accent-hover); }
+.openBidBtn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* ─── Log ────────────────────────────────────────────────────────────────────── */
+.logCard {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 14px; margin-top: 12px;
+}
+.logScroll { max-height: 150px; overflow-y: auto; }
+.logEntry {
+  padding: 5px 8px; border-radius: 6px; font-size: 11px;
+  background: var(--surface2); margin-bottom: 3px;
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: var(--font-mono); gap: 8px;
+}
+
+/* ─── Sidebar ────────────────────────────────────────────────────────────────── */
+.sidebar {}
+.sidebarTitle {
+  font-family: var(--font-display); font-size: 16px; letter-spacing: 1px;
+  color: var(--accent); margin-bottom: 10px;
+}
+
+.capBanner {
+  padding: 9px 12px; border-radius: 10px; margin-bottom: 12px;
+  background: rgba(255,165,2,.07); border: 1px solid rgba(255,165,2,.25);
+  font-size: 11px; color: var(--warning); line-height: 1.5;
+}
+
+.sbTeam {
+  background: var(--surface2); border-radius: 12px;
+  padding: 12px; border-left: 3px solid; margin-bottom: 8px;
+}
+.sbTeamLeading { box-shadow: 0 0 16px rgba(0,212,255,.1); }
+
+.sbTeamHeader { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.sbTeamInfo   {}
+.sbLeadTag    { font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; line-height: 1; }
+.sbTeamName   { font-weight: 600; font-size: 13px; }
+.sbCaptain    { font-size: 10px; color: var(--muted); }
+
+.sbBudgetRow { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 6px; }
+.sbPts { font-family: var(--font-mono); font-size: 15px; font-weight: 700; }
+.sbSlots { font-size: 11px; color: var(--muted); text-align: right; font-family: var(--font-mono); }
+
+.progressWrap {
+  background: var(--surface); border-radius: 20px; height: 6px; overflow: hidden; margin-bottom: 8px;
+}
+.progressBar { height: 100%; border-radius: 20px; transition: width 0.4s ease; }
+
+.capDetailRow { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
+.capDetailLabel { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+.capPill {
+  display: inline-flex; align-items: center; padding: 2px 7px;
+  border-radius: 5px; font-size: 10px; font-weight: 700; font-family: var(--font-mono);
+}
+.capSafe   { background: rgba(46,213,115,.08); border: 1px solid rgba(46,213,115,.3); color: var(--success); }
+.capWarn   { background: rgba(255,165,2,.08);   border: 1px solid rgba(255,165,2,.3);  color: var(--warning); }
+.capDanger { background: rgba(255,71,87,.08);   border: 1px solid rgba(255,71,87,.3);  color: var(--danger); }
+
+.reserveNote { font-size: 9px; color: var(--muted); margin-bottom: 5px; }
+
+.catBadges { display: flex; gap: 3px; flex-wrap: wrap; margin-top: 3px; }
+.catBadge  { font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: 700; }
+
+.unsoldSection {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px; margin-top: 10px;
+}
+.unsoldTitle {
+  font-size: 9px; color: var(--muted); font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px;
+}
+.unsoldChip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 8px; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 6px; font-size: 11px; margin: 2px;
+}
+
+/* ─── Category badge ─────────────────────────────────────────────────────────── */
+.catBadgePill {
+  display: inline-flex; align-items: center; padding: 2px 8px;
+  border-radius: 20px; font-size: 10px; font-weight: 700; letter-spacing: 1px;
+}
+
+/* ─── Responsive ─────────────────────────────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .layout { grid-template-columns: 1fr 320px; }
+  .bidTeamsGrid { grid-template-columns: repeat(2, 1fr); }
+  .playerName { font-size: 38px; }
+}
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { order: -1; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .sidebarTitle, .capBanner, .unsoldSection { grid-column: 1 / -1; }
+}
+
+@media (max-width: 600px) {
+  .bidTeamsGrid { grid-template-columns: repeat(2, 1fr); }
+  .stage { padding: 20px 12px; min-height: 440px; }
+  .playerName { font-size: 30px; }
+  .bidAmount  { font-size: 40px; }
+  .sidebar { grid-template-columns: 1fr; }
+}

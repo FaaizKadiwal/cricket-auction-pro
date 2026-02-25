@@ -1,0 +1,219 @@
+.page {}
+
+.pageHeader { margin-bottom: 24px; }
+.pageTitle {
+  font-family: var(--font-display);
+  font-size: 28px;
+  letter-spacing: 2px;
+  margin-bottom: 4px;
+}
+.pageSubtitle { color: var(--muted); font-size: 14px; }
+
+/* ─── Stats bar ──────────────────────────────────────────────────────────────── */
+.statsBar {
+  display: flex; gap: 20px; align-items: center;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 12px 20px;
+  margin-bottom: 20px; flex-wrap: wrap;
+}
+.statItem { display: flex; flex-direction: column; }
+.statLabel { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+.statValue { font-family: var(--font-display); font-size: 20px; letter-spacing: 1px; }
+.statDivider { width: 1px; background: var(--border); align-self: stretch; }
+
+/* ─── Sub nav ────────────────────────────────────────────────────────────────── */
+.subNav { display: flex; gap: 8px; margin-bottom: 20px; }
+.subNavBtn {
+  padding: 8px 18px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--text);
+  font-family: var(--font-body); font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: all 0.2s;
+}
+.subNavBtn:hover { border-color: var(--accent); color: var(--accent); }
+.subNavBtnActive { background: var(--accent); color: #000; border-color: var(--accent); }
+.subNavBtnActive:hover { background: var(--accent-hover); }
+
+/* ─── Team grid ──────────────────────────────────────────────────────────────── */
+.teamGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.teamCard {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.teamCard:hover { border-color: rgba(0,212,255,0.35); }
+
+.teamCardTop {
+  height: 4px;
+}
+
+.teamCardBody {
+  padding: 16px;
+}
+
+.teamCardImgRow {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  margin-bottom: 16px;
+}
+
+.teamCardTextFields {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.teamNum {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+/* ─── Form elements ──────────────────────────────────────────────────────────── */
+.formGroup { display: flex; flex-direction: column; gap: 5px; }
+.formLabel {
+  font-size: 10px; font-weight: 600; color: var(--muted);
+  letter-spacing: 2px; text-transform: uppercase;
+}
+.formInput, .formSelect {
+  padding: 9px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 13px;
+  transition: border-color 0.2s;
+  width: 100%;
+}
+.formInput:focus, .formSelect:focus { outline: none; border-color: var(--accent); }
+.formInputError { border-color: var(--danger) !important; }
+.formSelect { cursor: pointer; }
+.formSelect option { background: var(--surface2); }
+.formError { font-size: 10px; color: var(--danger); }
+.formHint  { font-size: 10px; color: var(--muted); }
+
+.colorRow { display: flex; align-items: center; gap: 8px; }
+.colorInput {
+  width: 36px; height: 32px;
+  border: none; border-radius: 6px;
+  cursor: pointer; background: transparent; padding: 2px;
+}
+
+.captainImgRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
+/* ─── Player panel ───────────────────────────────────────────────────────────── */
+.playerPanel {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px;
+}
+
+.cardScrollable {
+  max-height: 580px;
+  overflow-y: auto;
+}
+
+.cardTitle {
+  font-family: var(--font-display);
+  font-size: 18px;
+  letter-spacing: 1px;
+  color: var(--accent);
+  margin-bottom: 16px;
+}
+
+.addBtn {
+  width: 100%;
+  padding: 10px;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background 0.15s;
+}
+.addBtn:hover { background: var(--accent-hover); }
+
+/* ─── Player add form image row ─────────────────────────────────────────────── */
+.playerImgRow {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+/* ─── Player table ───────────────────────────────────────────────────────────── */
+.table { width: 100%; border-collapse: collapse; }
+.table th {
+  text-align: left; padding: 9px 12px;
+  font-size: 10px; font-weight: 600; color: var(--muted);
+  letter-spacing: 2px; text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+}
+.table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid rgba(42,42,63,0.4);
+  font-size: 13px;
+}
+.table tr:hover td { background: var(--surface2); }
+
+.playerInfoCell { display: flex; align-items: center; gap: 10px; }
+.playerName { font-weight: 600; }
+.playerRole { font-size: 11px; color: var(--muted); }
+
+.removeBtn {
+  padding: 4px 10px;
+  background: var(--danger); color: #fff;
+  border: none; border-radius: 6px;
+  font-size: 11px; font-weight: 600; cursor: pointer;
+  transition: background 0.15s;
+}
+.removeBtn:hover { background: var(--danger-hover); }
+
+.emptyState { text-align: center; padding: 48px 20px; color: var(--muted); }
+.emptyIcon  { font-size: 40px; margin-bottom: 12px; }
+.emptyText  { font-size: 14px; }
+
+/* ─── Category badge ─────────────────────────────────────────────────────────── */
+.catBadge {
+  display: inline-flex; align-items: center;
+  padding: 2px 8px; border-radius: 20px;
+  font-size: 10px; font-weight: 700; letter-spacing: 1px;
+}
+
+@media (max-width: 900px) {
+  .playerPanel { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .statsBar { gap: 12px; padding: 10px 14px; }
+  .statDivider { display: none; }
+}

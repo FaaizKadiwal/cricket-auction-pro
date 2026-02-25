@@ -1,0 +1,104 @@
+.header {
+  background: linear-gradient(135deg, #0a0a0f 0%, #12121a 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.logoWrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.logoIcon { font-size: 24px; line-height: 1; }
+
+.logoText {
+  font-family: var(--font-display);
+  font-size: 22px;
+  letter-spacing: 2px;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.logoSub {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.navTabs {
+  display: flex;
+  gap: 4px;
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  padding: 4px;
+}
+
+.navTab {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  background: transparent;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.navTab:hover:not(.active) { color: var(--text); background: var(--surface2); }
+.active { background: var(--accent); color: #000; font-weight: 700; }
+
+.statsWrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.statItem { text-align: right; }
+.statLabel { font-size: 9px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; display: block; }
+.statValue { font-family: var(--font-mono); font-size: 14px; font-weight: 700; }
+.divider   { width: 1px; height: 28px; background: var(--border); }
+
+.resetBtn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,71,87,0.3);
+  background: rgba(255,71,87,0.08);
+  color: var(--danger);
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.resetBtn:hover {
+  background: rgba(255,71,87,0.18);
+  border-color: var(--danger);
+}
+
+@media (max-width: 900px) {
+  .logoSub, .statsWrap { display: none; }
+  .navTab { padding: 6px 10px; font-size: 12px; }
+}
+
+@media (max-width: 600px) {
+  .header { flex-wrap: wrap; padding: 10px 14px; }
+  .navTabs { order: 3; width: 100%; }
+  .navTab { flex: 1; text-align: center; font-size: 11px; }
+}
