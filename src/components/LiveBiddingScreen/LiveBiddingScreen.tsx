@@ -1,11 +1,10 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import type { TournamentConfig, Team, SoldPlayer } from '@/types';
 import type { BiddingPayload } from '@/types/live';
 import { CATEGORY_STYLE } from '@/constants/auction';
 import { formatPts } from '@/utils/format';
 import { getBidCap, getSquad, getSpent } from '@/utils/auction';
 import { Avatar } from '@/components/Avatar/Avatar';
-import { LiveBidTicker } from '@/components/LiveBidTicker/LiveBidTicker';
 import styles from './LiveBiddingScreen.module.css';
 
 interface LiveBiddingScreenProps {
@@ -29,7 +28,37 @@ export function LiveBiddingScreen({ bidding, teams, soldPlayers, config }: LiveB
     return () => clearTimeout(timer);
   }, [currentBid]);
 
-  // Team budget data with cap warnings
+  // ── Bid pop notification ──────────────────────────────────────────────────
+  const [bidPop, setBidPop] = useState<{ teamName: string; teamColor: string; teamLogo: string | null; raise: number } | null>(null);
+  const prevLogLen = useRef(0);
+
+  useEffect(() => {
+    if (log.length > prevLogLen.current && log.length > 0) {
+      const latest = log[0];
+      const prevBid = log.length > 1 ? log[1].bid : player.basePrice;
+      const team = teams.find((t) => t.name === latest.teamName);
+      setBidPop({ teamName: latest.teamName, teamColor: latest.teamColor, teamLogo: team?.logoBase64 ?? null, raise: latest.bid - prevBid });
+      const timer = setTimeout(() => setBidPop(null), 3000);
+      prevLogLen.current = log.length;
+      return () => clearTimeout(timer);
+    }
+    prevLogLen.current = log.length;
+  }, [log, player.basePrice, teams]);
+
+  // Build per-team bid info from log (each team's latest bid + raise)
+  const teamBidMap = useMemo(() => {
+    const map = new Map<string, { lastBid: number; raise: number }>();
+    for (let i = 0; i < log.length; i++) {
+      const entry = log[i];
+      if (!map.has(entry.teamName)) {
+        const prevBid = i + 1 < log.length ? log[i + 1].bid : player.basePrice;
+        map.set(entry.teamName, { lastBid: entry.bid, raise: entry.bid - prevBid });
+      }
+    }
+    return map;
+  }, [log, player.basePrice]);
+
+  // Team budget data with cap warnings + bid info
   const teamBudgets = useMemo(() =>
     teams.map((team) => {
       const squad = getSquad(team.id, soldPlayers);
@@ -38,14 +67,15 @@ export function LiveBiddingScreen({ bidding, teams, soldPlayers, config }: LiveB
       const slotsLeft = squadSize - squad.length;
       const { cap } = getBidCap(team.id, soldPlayers, config);
       const isLeading = team.id === leadingTeamId;
+      const bidInfo = teamBidMap.get(team.name) ?? null;
 
       let capStatus: 'safe' | 'warn' | 'danger' = 'safe';
       if (cap <= 0 || slotsLeft <= 0) capStatus = 'danger';
       else if (cap < currentBid + 50) capStatus = 'warn';
 
-      return { team, remaining, slotsLeft, cap, isLeading, capStatus };
+      return { team, remaining, slotsLeft, cap, isLeading, capStatus, bidInfo };
     }),
-    [teams, soldPlayers, config, squadSize, leadingTeamId, currentBid],
+    [teams, soldPlayers, config, squadSize, leadingTeamId, currentBid, teamBidMap],
   );
 
   return (
@@ -101,39 +131,63 @@ export function LiveBiddingScreen({ bidding, teams, soldPlayers, config }: LiveB
             <div className={styles.noBids}>Awaiting first bid...</div>
           )}
         </div>
+
       </div>
+
+      {/* Bid pop notification — anchored bottom-center of left panel */}
+      {bidPop && (
+        <div
+          className={styles.bidPop}
+          key={log.length}
+          style={{ '--pop-color': bidPop.teamColor } as React.CSSProperties}
+        >
+          <Avatar src={bidPop.teamLogo} name={bidPop.teamName} size={32} color={bidPop.teamColor} square />
+          <span className={styles.bidPopName} style={{ color: bidPop.teamColor }}>{bidPop.teamName}</span>
+          <span className={styles.bidPopText}>raised</span>
+          <span className={styles.bidPopRaise}>+{formatPts(bidPop.raise)}</span>
+        </div>
+      )}
 
       {/* ── RIGHT: Team panels ── */}
       <div className={styles.rightPanel}>
         <div className={styles.teamsPanelTitle}>TEAMS</div>
         <div className={styles.teamsList}>
-          {teamBudgets.map(({ team, remaining, slotsLeft, cap, isLeading, capStatus }) => (
+          {teamBudgets.map(({ team, remaining, slotsLeft, cap, isLeading, capStatus, bidInfo }) => (
             <div
               key={team.id}
-              className={`${styles.teamRow} ${isLeading ? styles.teamRowLeading : ''}`}
+              className={`${styles.teamRow} ${isLeading ? styles.teamRowLeading : ''} ${bidInfo && !isLeading ? styles.teamRowBid : ''}`}
               style={{ '--team-color': team.color } as React.CSSProperties}
             >
               <Avatar src={team.logoBase64} name={team.name} size={32} color={team.color} square />
               <div className={styles.teamInfo}>
-                <span className={styles.teamName} style={{ color: isLeading ? team.color : 'var(--text)' }}>
+                <span className={styles.teamName} style={{ color: isLeading ? team.color : bidInfo ? 'var(--text)' : 'var(--text-secondary)' }}>
                   {team.name || `Team ${team.id}`}
                 </span>
                 <span className={styles.teamBudget}>
                   {formatPts(remaining)} pts &middot; {slotsLeft} slot{slotsLeft !== 1 ? 's' : ''}
                 </span>
               </div>
-              <div className={styles.teamStatus}>
+              <div className={styles.teamEnd}>
+                {bidInfo ? (
+                  <div className={styles.bidInfoRow}>
+                    <span className={styles.teamBidAmount} style={{ color: isLeading ? team.color : 'var(--accent)' }}>
+                      {formatPts(bidInfo.lastBid)}
+                    </span>
+                    <span className={styles.teamBidRaise}>+{formatPts(bidInfo.raise)}</span>
+                  </div>
+                ) : (
+                  capStatus === 'danger'
+                    ? <span className={styles.capDanger}>CAPPED</span>
+                    : capStatus === 'warn'
+                      ? <span className={styles.capWarn}>{formatPts(cap)} max</span>
+                      : null
+                )}
                 {isLeading && <span className={styles.leadBadge} style={{ color: team.color, borderColor: `${team.color}60` }}>LEADING</span>}
-                {capStatus === 'danger' && <span className={styles.capDanger}>CAPPED</span>}
-                {capStatus === 'warn' && !isLeading && <span className={styles.capWarn}>{formatPts(cap)} max</span>}
               </div>
             </div>
           ))}
         </div>
       </div>
-
-      {/* ── BOTTOM: Bid ticker ── */}
-      <LiveBidTicker log={log} />
     </div>
   );
 }
