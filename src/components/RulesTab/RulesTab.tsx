@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { useTournament } from '@/context/TournamentContext';
 import { formatPts } from '@/utils/format';
+import { downloadRulesPdf } from '@/utils/pdf';
 import styles from './RulesTab.module.css';
 
 interface RuleItem {
@@ -16,6 +18,23 @@ interface RuleSection {
 export function RulesTab() {
   const { config, squadSize } = useTournament();
   const totalSlots = config.totalTeams * squadSize;
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = () => {
+    if (downloading) return;
+    setDownloading(true);
+    try {
+      const subtitle = [
+        `${config.tournamentName}`,
+        `${config.totalTeams} teams · ${formatPts(config.budget)} pts budget per team · ${config.playersPerTeam} players per squad (incl. captain)`,
+        'All captains must acknowledge these rules before bidding begins.',
+      ].join('\n');
+      const filename = `${config.tournamentName} - Auction Rules.pdf`;
+      downloadRulesPdf(config.tournamentName, subtitle, sections, filename);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const catLimitLines = config.categories.map((cat) => {
     const parts: string[] = [];
@@ -30,9 +49,9 @@ export function RulesTab() {
       title: '🏟️ Tournament Overview',
       items: [
         { text: `${config.totalTeams} teams participate. Each team is managed by a Captain who bids on behalf of their side.` },
-        { text: `Each team must field exactly ${config.playersPerTeam} players — 1 Captain (pre-assigned) + ${squadSize} auction picks.` },
+        { text: `Each team must consist of exactly ${config.playersPerTeam} players — 1 Captain (pre-assigned) + ${squadSize} auction picks.` },
         { text: `Total auction slots: ${totalSlots} (${config.totalTeams} teams × ${squadSize} picks each).` },
-        { text: 'Every player in the pool must be either sold or declared unsold before results are finalised.' },
+        { text: 'Every player in the pool must be declared sold before results are finalised.' },
       ],
     },
     {
@@ -130,7 +149,18 @@ export function RulesTab() {
 
   return (
     <main className={styles.page} aria-label="Official auction rules">
-      <h1 className={styles.pageTitle}>Official Auction Rules</h1>
+      <div className={styles.pageHeader}>
+        <h1 className={styles.pageTitle}>Official Auction Rules</h1>
+        <button
+          className={styles.downloadBtn}
+          onClick={handleDownload}
+          disabled={downloading}
+          aria-label="Download rules as PDF"
+        >
+          {downloading ? 'Generating...' : 'Download PDF'}
+        </button>
+      </div>
+
       <p className={styles.pageSubtitle}>
         {config.tournamentName} · {config.totalTeams} teams ·{' '}
         {formatPts(config.budget)} pts budget per team ·{' '}

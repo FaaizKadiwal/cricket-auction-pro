@@ -2,11 +2,38 @@
   max-width: 860px;
 }
 
+.pageHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
 .pageTitle {
   font-family: var(--font-display);
   font-size: 28px;
   letter-spacing: 2px;
-  margin-bottom: 4px;
+}
+
+.downloadBtn {
+  flex-shrink: 0;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #000;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  white-space: nowrap;
+}
+.downloadBtn:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+.downloadBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .pageSubtitle {
