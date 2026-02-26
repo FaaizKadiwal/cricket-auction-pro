@@ -12,9 +12,9 @@ interface HeaderProps {
 }
 
 export function Header({ activeTab, onTabChange, soldPlayers, onReset }: HeaderProps) {
-  const { config } = useTournament();
+  const { config, squadSize } = useTournament();
   const totalSpent = soldPlayers.reduce((sum, s) => sum + s.finalPrice, 0);
-  const totalPlayers = config.totalTeams * (config.playersPerTeam - 1);
+  const totalPlayers = config.totalTeams * squadSize;
 
   return (
     <header className={styles.header} role="banner">

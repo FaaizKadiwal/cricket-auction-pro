@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from 'react';
 import type { Team, Player, SoldPlayer, Category, DemotionResult } from '@/types';
 import type { BidIncrement } from '@/constants/auction';
 import type { BroadcastHandle } from '@/hooks/useBroadcast';
-import { getCategoryStyle, getActiveIncrement } from '@/constants/auction';
+import { getCategoryStyle, getActiveIncrement, MAX_LOG_ENTRIES } from '@/constants/auction';
 import { getBidCap, getSquad, getSpent, getCatCount, validateBid } from '@/utils/auction';
 import { formatPts, formatPct, getBarColorToken } from '@/utils/format';
 import { useTournament } from '@/context/TournamentContext';
@@ -38,8 +38,7 @@ interface AuctionTabProps {
 // ─── AuctionTab ───────────────────────────────────────────────────────────────
 
 export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUndoLastSale, onToast, broadcast }: AuctionTabProps) {
-  const { config } = useTournament();
-  const squadSize  = config.playersPerTeam - 1;
+  const { config, squadSize } = useTournament();
 
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [currentBid,    setCurrentBid]    = useState(0);
@@ -89,7 +88,7 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
     setLeadingTeamId(teamId);
     setLog((prev) => [
       { teamName: team.name, teamColor: team.color, bid: newBid, player: currentPlayer.name },
-      ...prev.slice(0, 59),
+      ...prev.slice(0, MAX_LOG_ENTRIES - 1),
     ]);
     broadcast?.broadcastBidUpdate(newBid, teamId, { teamName: team.name, teamColor: team.color, bid: newBid });
   }, [currentPlayer, currentBid, leadingTeamId, teams, soldPlayers, config, onToast, broadcast]);
@@ -107,7 +106,7 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
     setLeadingTeamId(teamId);
     setLog((prev) => [
       { teamName: team.name, teamColor: team.color, bid: currentBid, player: currentPlayer.name },
-      ...prev.slice(0, 59),
+      ...prev.slice(0, MAX_LOG_ENTRIES - 1),
     ]);
     broadcast?.broadcastBidUpdate(currentBid, teamId, { teamName: team.name, teamColor: team.color, bid: currentBid });
   }, [currentPlayer, currentBid, leadingTeamId, teams, soldPlayers, config, onToast, broadcast]);
@@ -241,10 +240,10 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
                   {broadcast && (
                     <div className={styles.liveControls}>
                       <span className={styles.liveControlLabel}>Live Viewer:</span>
-                      <button className={styles.btnLiveSquads} onClick={() => broadcast.broadcastShowSquads()}>
+                      <button className={styles.btnLiveSquads} onClick={() => broadcast.broadcastShowSquads()} aria-label="Show squads on live viewer">
                         👥 Show Squads
                       </button>
-                      <button className={styles.btnLiveIdle} onClick={() => broadcast.broadcastShowIdle()}>
+                      <button className={styles.btnLiveIdle} onClick={() => broadcast.broadcastShowIdle()} aria-label="Show tournament logo on live viewer">
                         🏏 Show Logo
                       </button>
                     </div>

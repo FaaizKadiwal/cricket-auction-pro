@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { Team, SoldPlayer, Category } from '@/types';
 import type { BidIncrement } from '@/constants/auction';
 import { getActiveIncrement } from '@/constants/auction';
@@ -17,11 +18,10 @@ interface BidTeamPanelProps {
   onBasePick: (teamId: number) => void;
 }
 
-export function BidTeamPanel({
+export const BidTeamPanel = memo(function BidTeamPanel({
   team, soldPlayers, currentBid, currentCategory, leadingTeamId, onBid, onBasePick,
 }: BidTeamPanelProps) {
-  const { config } = useTournament();
-  const squadSize  = config.playersPerTeam - 1;
+  const { config, squadSize } = useTournament();
   const squad      = getSquad(team.id, soldPlayers);
   const { cap }    = getBidCap(team.id, soldPlayers, config);
   const slotsLeft  = squadSize - squad.length;
@@ -108,4 +108,4 @@ export function BidTeamPanel({
       </div>
     </div>
   );
-}
+});

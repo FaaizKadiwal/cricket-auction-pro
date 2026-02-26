@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, memo } from 'react';
 import type { TournamentConfig, Team, SoldPlayer } from '@/types';
-import { getCategoryStyle } from '@/constants/auction';
+import { getCategoryStyle, getSquadSize } from '@/constants/auction';
 import { getSquad, getSpent, getCatCount } from '@/utils/auction';
 import { formatPts } from '@/utils/format';
 import { Avatar } from '@/components/Avatar/Avatar';
@@ -13,7 +13,7 @@ interface LiveSquadViewProps {
 }
 
 export function LiveSquadView({ teams, soldPlayers, config }: LiveSquadViewProps) {
-  const squadSize = config.playersPerTeam - 1;
+  const squadSize = getSquadSize(config);
 
   return (
     <div className={styles.container}>
@@ -36,7 +36,7 @@ interface TeamCardProps {
   squadSize: number;
 }
 
-function TeamCard({ team, soldPlayers, config, squadSize }: TeamCardProps) {
+const TeamCard = memo(function TeamCard({ team, soldPlayers, config, squadSize }: TeamCardProps) {
   const squad = useMemo(() => getSquad(team.id, soldPlayers), [team.id, soldPlayers]);
   const spent = useMemo(() => getSpent(team.id, soldPlayers), [team.id, soldPlayers]);
   const remaining = config.budget - spent;
@@ -100,4 +100,4 @@ function TeamCard({ team, soldPlayers, config, squadSize }: TeamCardProps) {
       </div>
     </div>
   );
-}
+});

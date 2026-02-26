@@ -16,10 +16,6 @@ export function getCatCount(teamId: number, category: Category, soldPlayers: Sol
   return getSquad(teamId, soldPlayers).filter((s) => s.category === category).length;
 }
 
-export function getRemainingBudget(teamId: number, soldPlayers: SoldPlayer[], budget: number): number {
-  return budget - getSpent(teamId, soldPlayers);
-}
-
 // ─── Bidding Cap ──────────────────────────────────────────────────────────────
 
 /**
@@ -98,13 +94,6 @@ export function validatePlayerForm(name: string, basePrice: number): ValidationE
   return errors;
 }
 
-export function validateTeamForm(name: string, captain: string): ValidationError[] {
-  const errors: ValidationError[] = [];
-  if (!name.trim())    errors.push({ field: 'name',    message: 'Team name is required.'    });
-  if (!captain.trim()) errors.push({ field: 'captain', message: 'Captain name is required.' });
-  return errors;
-}
-
 export function validateConfig(
   totalTeams: number,
   playersPerTeam: number,
@@ -120,5 +109,7 @@ export function validateConfig(
     errors.push({ field: 'budget', message: 'Budget must be at least 100 pts.' });
   if (isNaN(minBidReserve) || minBidReserve < 0)
     errors.push({ field: 'minBidReserve', message: 'Min bid reserve must be 0 or more.' });
+  if (errors.length === 0 && minBidReserve * (playersPerTeam - 1) > budget)
+    errors.push({ field: 'minBidReserve', message: 'Total reserve exceeds budget — lower the reserve or raise the budget.' });
   return errors;
 }

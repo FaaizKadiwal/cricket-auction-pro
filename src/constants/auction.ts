@@ -30,7 +30,7 @@ export function getSquadSize(config: TournamentConfig): number {
 // ─── Category Helpers ────────────────────────────────────────────────────────
 
 /** Look up a CategoryDefinition by its name from config. */
-export function getCategoryDef(
+function getCategoryDef(
   config: TournamentConfig,
   categoryName: Category,
 ): CategoryDefinition | undefined {
@@ -85,6 +85,14 @@ export const DEFAULT_TEAM_COLORS: string[] = [
   '#219ebc', '#8338ec', '#3a86ff',
   '#ff006e', '#fb5607',
 ];
+
+// ─── Live Viewer Channel ──────────────────────────────────────────────────
+
+// ─── Magic Number Constants ─────────────────────────────────────────────────
+
+export const MAX_LOG_ENTRIES = 60;
+export const MAX_VISIBLE_BIDS = 8;
+export const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 // ─── Live Viewer Channel ──────────────────────────────────────────────────
 

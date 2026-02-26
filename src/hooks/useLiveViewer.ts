@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useRef } from 'react';
 import type { TournamentConfig, Team, Player, SoldPlayer } from '@/types';
 import type { ViewerPhase, BiddingPayload, SoldPayload, LiveMessage } from '@/types/live';
-import { LIVE_CHANNEL_NAME } from '@/constants/auction';
+import { LIVE_CHANNEL_NAME, MAX_LOG_ENTRIES } from '@/constants/auction';
 
 // ─── Viewer State ───────────────────────────────────────────────────────────
 
@@ -71,7 +71,7 @@ function viewerReducer(state: ViewerState, action: ViewerAction): ViewerState {
           ...state.bidding,
           currentBid: action.currentBid,
           leadingTeamId: action.leadingTeamId,
-          log: [action.logEntry, ...state.bidding.log.slice(0, 59)],
+          log: [action.logEntry, ...state.bidding.log.slice(0, MAX_LOG_ENTRIES - 1)],
         },
       };
 

@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import type { TournamentConfig, Team, SoldPlayer } from '@/types';
 import type { BiddingPayload } from '@/types/live';
-import { getCategoryStyle, getActiveIncrement } from '@/constants/auction';
+import { getCategoryStyle, getActiveIncrement, getSquadSize } from '@/constants/auction';
 import { formatPts } from '@/utils/format';
 import { getBidCap, getSquad, getSpent } from '@/utils/auction';
 import { Avatar } from '@/components/Avatar/Avatar';
@@ -18,7 +18,7 @@ export function LiveBiddingScreen({ bidding, teams, soldPlayers, config }: LiveB
   const { player, currentBid, leadingTeamId, log } = bidding;
   const catStyle = getCategoryStyle(config, player.category);
   const leadingTeam = useMemo(() => teams.find((t) => t.id === leadingTeamId) ?? null, [teams, leadingTeamId]);
-  const squadSize = config.playersPerTeam - 1;
+  const squadSize = getSquadSize(config);
 
   // Bid bump animation
   const [bump, setBump] = useState(false);

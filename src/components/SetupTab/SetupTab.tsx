@@ -1,4 +1,4 @@
-import { useState, useCallback, useId } from 'react';
+import { useState, useCallback, useId, useMemo } from 'react';
 import type { Team, Player, Category, ValidationError } from '@/types';
 import { getCategoryStyle, getCategoryNames } from '@/constants/auction';
 import { validatePlayerForm } from '@/utils/auction';
@@ -298,11 +298,15 @@ export function SetupTab({ teams, onTeamsChange, players, onPlayersChange }: Set
     [players, onPlayersChange]
   );
 
+  const { squadSize } = useTournament();
+
   // Dynamic category counts
-  const catCounts: Record<string, number> = {};
-  config.categories.forEach((c) => { catCounts[c.name] = 0; });
-  players.forEach((p) => { catCounts[p.category] = (catCounts[p.category] ?? 0) + 1; });
-  const squadSize  = config.playersPerTeam - 1;
+  const catCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    config.categories.forEach((c) => { counts[c.name] = 0; });
+    players.forEach((p) => { counts[p.category] = (counts[p.category] ?? 0) + 1; });
+    return counts;
+  }, [config.categories, players]);
   const totalSlots = config.totalTeams * squadSize;
 
   return (

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, memo } from 'react';
 import type { Team, SoldPlayer } from '@/types';
 import { getCategoryStyle } from '@/constants/auction';
 import { getSquad, getSpent, getCatCount } from '@/utils/auction';
@@ -14,9 +14,8 @@ interface TeamSquadCardProps {
   soldPlayers: SoldPlayer[];
 }
 
-function TeamSquadCard({ team, soldPlayers }: TeamSquadCardProps) {
-  const { config } = useTournament();
-  const squadSize  = config.playersPerTeam - 1;
+const TeamSquadCard = memo(function TeamSquadCard({ team, soldPlayers }: TeamSquadCardProps) {
+  const { config, squadSize } = useTournament();
 
   const squad   = useMemo(() => getSquad(team.id, soldPlayers), [team.id, soldPlayers]);
   const spent   = useMemo(() => getSpent(team.id, soldPlayers), [team.id, soldPlayers]);
@@ -153,7 +152,7 @@ function TeamSquadCard({ team, soldPlayers }: TeamSquadCardProps) {
       </div>
     </article>
   );
-}
+});
 
 // ─── SquadsTab ────────────────────────────────────────────────────────────────
 

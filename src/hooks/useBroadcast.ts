@@ -3,12 +3,12 @@ import type { TournamentConfig, Team, Player, SoldPlayer, Category } from '@/typ
 import type {
   LiveMessage, SyncStateMessage, BiddingPayload, SoldPayload, ViewerPhase, ChannelMessage,
 } from '@/types/live';
-import { LIVE_CHANNEL_NAME } from '@/constants/auction';
+import { LIVE_CHANNEL_NAME, MAX_LOG_ENTRIES } from '@/constants/auction';
 
 // ─── Params ─────────────────────────────────────────────────────────────────
 
 interface UseBroadcastParams {
-  config: TournamentConfig;
+  config: TournamentConfig | null;
   teams: Team[];
   players: Player[];
   soldPlayers: SoldPlayer[];
@@ -57,10 +57,11 @@ export function useBroadcast({ config, teams, players, soldPlayers }: UseBroadca
     channelRef.current = ch;
 
     ch.onmessage = (e: MessageEvent<ChannelMessage>) => {
-      if (e.data?.type === 'SYNC_REQUEST') {
+      const cfg = configRef.current;
+      if (e.data?.type === 'SYNC_REQUEST' && cfg) {
         const sync: SyncStateMessage = {
           type: 'SYNC_STATE',
-          config:      configRef.current,
+          config:      cfg,
           teams:       teamsRef.current,
           players:     playersRef.current,
           soldPlayers: soldPlayersRef.current,
@@ -90,7 +91,7 @@ export function useBroadcast({ config, teams, players, soldPlayers }: UseBroadca
         ...biddingRef.current,
         currentBid,
         leadingTeamId: teamId,
-        log: [logEntry, ...biddingRef.current.log.slice(0, 59)],
+        log: [logEntry, ...biddingRef.current.log.slice(0, MAX_LOG_ENTRIES - 1)],
       };
     }
     send({ type: 'BID_UPDATE', currentBid, leadingTeamId: teamId, logEntry });

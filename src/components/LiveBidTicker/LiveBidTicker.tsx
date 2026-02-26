@@ -1,3 +1,4 @@
+import { MAX_VISIBLE_BIDS } from '@/constants/auction';
 import { formatPts } from '@/utils/format';
 import styles from './LiveBidTicker.module.css';
 
@@ -8,8 +9,7 @@ interface LiveBidTickerProps {
 export function LiveBidTicker({ log }: LiveBidTickerProps) {
   if (log.length === 0) return null;
 
-  // Show last 8 bids
-  const visible = log.slice(0, 8);
+  const visible = log.slice(0, MAX_VISIBLE_BIDS);
 
   return (
     <div className={styles.ticker} role="log" aria-label="Bid history">

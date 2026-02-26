@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import type { TabId, Team, Player, SoldPlayer, TournamentConfig, DemotionResult } from '@/types';
-import { DEFAULT_TEAM_COLORS, STORAGE_KEYS, DEFAULT_CATEGORIES } from '@/constants/auction';
+import { DEFAULT_TEAM_COLORS, STORAGE_KEYS } from '@/constants/auction';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useToast } from '@/hooks/useToast';
 import { useBroadcast } from '@/hooks/useBroadcast';
@@ -56,13 +56,8 @@ export default function App() {
 
   const { toasts, showToast, dismissToast } = useToast(5000);
 
-  // Live viewer broadcast (only active when config exists)
-  const broadcast = useBroadcast({
-    config: config ?? { tournamentName: '', totalTeams: 0, playersPerTeam: 0, budget: 0, minBidReserve: 0, categories: DEFAULT_CATEGORIES, logoBase64: null },
-    teams,
-    players,
-    soldPlayers,
-  });
+  // Live viewer broadcast (only responds to sync when config exists)
+  const broadcast = useBroadcast({ config, teams, players, soldPlayers });
 
   // ── Config Wizard ──────────────────────────────────────────────────────────
 
@@ -90,16 +85,6 @@ export default function App() {
   }, [setConfig, setTeams, setPlayers, setSoldPlayers, setActiveTab]);
 
   // ── Data Handlers ──────────────────────────────────────────────────────────
-
-  const handleTeamsChange = useCallback(
-    (updated: Team[]) => setTeams(updated),
-    [setTeams]
-  );
-
-  const handlePlayersChange = useCallback(
-    (updated: Player[]) => setPlayers(updated),
-    [setPlayers]
-  );
 
   /**
    * Called when a player is confirmed SOLD.
@@ -211,9 +196,9 @@ export default function App() {
             <ErrorBoundary fallbackLabel="Setup Tab">
               <SetupTab
                 teams={teams}
-                onTeamsChange={handleTeamsChange}
+                onTeamsChange={setTeams}
                 players={players}
-                onPlayersChange={handlePlayersChange}
+                onPlayersChange={setPlayers}
               />
             </ErrorBoundary>
           )}

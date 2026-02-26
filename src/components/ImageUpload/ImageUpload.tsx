@@ -1,4 +1,5 @@
 import { useRef, useState, useId } from 'react';
+import { MAX_IMAGE_SIZE } from '@/constants/auction';
 import { resizeImage } from '@/utils/image';
 import styles from './ImageUpload.module.css';
 
@@ -25,7 +26,7 @@ export function ImageUpload({
       setError('Only image files are accepted.');
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
+    if (file.size > MAX_IMAGE_SIZE) {
       setError('Image must be under 10 MB.');
       return;
     }
