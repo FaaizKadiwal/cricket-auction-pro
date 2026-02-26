@@ -1,12 +1,14 @@
 import { useMemo } from 'react';
+import type { TournamentConfig } from '@/types';
 import type { SoldPayload } from '@/types/live';
-import { CATEGORY_STYLE } from '@/constants/auction';
+import { getCategoryStyle } from '@/constants/auction';
 import { formatPts } from '@/utils/format';
 import { Avatar } from '@/components/Avatar/Avatar';
 import styles from './LiveSoldOverlay.module.css';
 
 interface LiveSoldOverlayProps {
   lastSold: SoldPayload;
+  config: TournamentConfig;
 }
 
 // Pre-defined particle positions for deterministic burst effect
@@ -23,8 +25,8 @@ const PARTICLES = [
   { tx: '40px',  ty: '110px',  color: '#00d4ff', delay: '0.06s' },
 ];
 
-export function LiveSoldOverlay({ lastSold }: LiveSoldOverlayProps) {
-  const catStyle = CATEGORY_STYLE[lastSold.player.category];
+export function LiveSoldOverlay({ lastSold, config }: LiveSoldOverlayProps) {
+  const catStyle = getCategoryStyle(config, lastSold.player.category);
 
   const particles = useMemo(() =>
     PARTICLES.map((p, i) => (

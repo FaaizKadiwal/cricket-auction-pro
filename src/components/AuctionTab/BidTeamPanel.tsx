@@ -1,6 +1,6 @@
 import type { Team, SoldPlayer, Category } from '@/types';
 import type { BidIncrement } from '@/constants/auction';
-import { BID_INCREMENTS } from '@/constants/auction';
+import { getActiveIncrement } from '@/constants/auction';
 import { getBidCap, getSquad, getCatCount } from '@/utils/auction';
 import { formatPts } from '@/utils/format';
 import { Avatar } from '@/components/Avatar/Avatar';
@@ -14,10 +14,11 @@ interface BidTeamPanelProps {
   currentCategory: Category;
   leadingTeamId: number | null;
   onBid: (teamId: number, increment: BidIncrement) => void;
+  onBasePick: (teamId: number) => void;
 }
 
 export function BidTeamPanel({
-  team, soldPlayers, currentBid, currentCategory, leadingTeamId, onBid,
+  team, soldPlayers, currentBid, currentCategory, leadingTeamId, onBid, onBasePick,
 }: BidTeamPanelProps) {
   const { config } = useTournament();
   const squadSize  = config.playersPerTeam - 1;
@@ -27,7 +28,8 @@ export function BidTeamPanel({
   const isLeading  = team.id === leadingTeamId;
 
   const isFull    = squad.length >= squadSize;
-  const catMax    = config.categoryLimits[currentCategory]?.max ?? 0;
+  const catDef    = config.categories.find((c) => c.name === currentCategory);
+  const catMax    = catDef?.max ?? 0;
   const isCatFull = catMax > 0 && getCatCount(team.id, currentCategory, soldPlayers) >= catMax;
   const isBlocked = isFull || isCatFull || cap <= 0;
 
@@ -36,9 +38,11 @@ export function BidTeamPanel({
   else if (isCatFull) blockReason = `${currentCategory} LIMIT`;
   else if (cap <= 0) blockReason = 'NO BUDGET';
 
+  const activeInc = getActiveIncrement(currentBid);
+
   function capClass() {
-    if (cap < currentBid + BID_INCREMENTS[0]) return styles.capDanger;
-    if (cap < currentBid + 100) return styles.capWarn;
+    if (cap < currentBid + activeInc) return styles.capDanger;
+    if (cap < currentBid + activeInc * 2) return styles.capWarn;
     return styles.capSafe;
   }
 
@@ -74,24 +78,33 @@ export function BidTeamPanel({
 
       {/* Increment buttons */}
       <div className={styles.btnRow} role="group" aria-label={`Bid for ${team.name}`}>
-        {BID_INCREMENTS.map((inc) => {
-          const nextBid  = currentBid + inc;
+        <button
+          className={`${styles.incBtn} ${styles.basePickBtn}`}
+          disabled={isBlocked || leadingTeamId !== null}
+          onClick={() => onBasePick(team.id)}
+          aria-label="Pick at base price"
+          style={{
+            borderColor: isBlocked || leadingTeamId !== null ? 'var(--border)' : team.color,
+            color:       isBlocked || leadingTeamId !== null ? 'var(--muted)'  : team.color,
+          }}
+        >=</button>
+        {(() => {
+          const nextBid  = currentBid + activeInc;
           const overCap  = nextBid > cap;
           const disabled = isBlocked || overCap;
           return (
             <button
-              key={inc}
               className={styles.incBtn}
               disabled={disabled}
-              onClick={() => onBid(team.id, inc)}
-              aria-label={`+${inc} pts`}
+              onClick={() => onBid(team.id, activeInc)}
+              aria-label={`+${activeInc} pts`}
               style={{
                 borderColor: disabled ? 'var(--border)' : team.color,
                 color:       disabled ? 'var(--muted)'  : team.color,
               }}
-            >+{inc}</button>
+            >+{activeInc}</button>
           );
-        })}
+        })()}
       </div>
     </div>
   );

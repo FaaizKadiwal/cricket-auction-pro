@@ -63,7 +63,8 @@ export function validateBid(
     return { valid: false, reason: 'Squad is already full.' };
   }
 
-  const catLimit = config.categoryLimits[category]?.max ?? 0;
+  const catDef = config.categories.find((c) => c.name === category);
+  const catLimit = catDef?.max ?? 0;
   if (catLimit > 0 && getCatCount(teamId, category, soldPlayers) >= catLimit) {
     return { valid: false, reason: `${category} category limit reached (max ${catLimit} per team).` };
   }

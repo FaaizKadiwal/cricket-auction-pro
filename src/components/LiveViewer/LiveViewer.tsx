@@ -169,7 +169,7 @@ export function LiveViewerApp() {
 
             {displayPhase === 'SOLD' && state.lastSold && (
               <div className={styles.phaseEnter} key="sold">
-                <LiveSoldOverlay lastSold={state.lastSold} />
+                <LiveSoldOverlay lastSold={state.lastSold} config={state.config} />
               </div>
             )}
 
@@ -179,6 +179,8 @@ export function LiveViewerApp() {
                   playerName={state.unsoldInfo.playerName}
                   demoted={state.unsoldInfo.demoted}
                   newCategory={state.unsoldInfo.newCategory}
+                  halvedInPlace={state.unsoldInfo.halvedInPlace}
+                  config={state.config}
                 />
               </div>
             )}

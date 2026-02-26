@@ -17,9 +17,12 @@ export function RulesTab() {
   const { config, squadSize } = useTournament();
   const totalSlots = config.totalTeams * squadSize;
 
-  const catLimitLines = (['Gold', 'Silver', 'Bronze'] as const).map((cat) => {
-    const max = config.categoryLimits[cat]?.max ?? 0;
-    return `${cat.toUpperCase()}: ${max === 0 ? 'no per-team limit' : `maximum ${max} players per team`}.`;
+  const catLimitLines = config.categories.map((cat) => {
+    const parts: string[] = [];
+    if (cat.min > 0) parts.push(`minimum ${cat.min}`);
+    if (cat.max > 0) parts.push(`maximum ${cat.max}`);
+    const limit = parts.length > 0 ? parts.join(', ') + ' players per team' : 'no per-team limit';
+    return `${cat.name.toUpperCase()}: ${limit}.`;
   });
 
   const sections: RuleSection[] = [
@@ -43,7 +46,7 @@ export function RulesTab() {
     {
       title: '📂 Category Composition',
       items: [
-        { text: 'Players are categorised individually as they are added to the pool — Gold, Silver, or Bronze.' },
+        { text: `Players are categorised individually as they are added to the pool — ${config.categories.map((c) => c.name).join(', ')}.` },
         ...catLimitLines.map((t) => ({ text: t })),
         { text: 'The auctioneer can filter the pool by category to run category-by-category auction rounds.' },
       ],
@@ -52,7 +55,12 @@ export function RulesTab() {
       title: '🔨 Bidding Procedure',
       items: [
         { text: 'The Auctioneer announces the player and their base price. Bidding opens immediately at that price.' },
-        { text: 'Captains raise bids in fixed increments only: +10, +25, +50, +100, or +200 points.' },
+        { text: 'A captain may pick a player at the base price by pressing "=" (match base). Once any team matches, the "=" option is locked.' },
+        { text: 'After the base pick, captains raise bids using a single increment that scales with the current bid:' },
+        { text: 'Below 400 pts → +20 per bid.', hl: true },
+        { text: '400 – 999 pts → +50 per bid.', hl: true },
+        { text: '1,000 – 1,999 pts → +100 per bid.', hl: true },
+        { text: '2,000+ pts → +200 per bid.', hl: true },
         { text: "The highest active bidder when the Auctioneer calls 'SOLD' wins the player at that final price." },
         { text: 'If no bids are placed, the player is declared UNSOLD and may re-enter a Flash Round.' },
       ],
@@ -95,7 +103,7 @@ export function RulesTab() {
       title: '🏆 Auction Order & Format',
       items: [
         { text: 'The auctioneer may sequence players in any order, or run category-by-category rounds.' },
-        { text: 'Use the category filter buttons on the Auction page to quickly view Gold, Silver, or Bronze players.' },
+        { text: 'Use the category filter buttons on the Auction page to quickly view players by tier.' },
         { text: "A random draw determines the 'Right of First Nomination' within each category." },
         { text: 'After all players are processed, unsold players may re-enter a Flash Round at a reduced price.' },
       ],

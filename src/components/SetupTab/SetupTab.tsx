@@ -1,6 +1,6 @@
 import { useState, useCallback, useId } from 'react';
 import type { Team, Player, Category, ValidationError } from '@/types';
-import { CATEGORY_STYLE, CATEGORIES } from '@/constants/auction';
+import { getCategoryStyle, getCategoryNames } from '@/constants/auction';
 import { validatePlayerForm } from '@/utils/auction';
 import { formatPts } from '@/utils/format';
 import { useTournament } from '@/context/TournamentContext';
@@ -101,8 +101,10 @@ interface AddPlayerFormProps {
 }
 
 function AddPlayerForm({ onAdd }: AddPlayerFormProps) {
+  const { config } = useTournament();
+  const catNames = getCategoryNames(config);
   const [name,      setName]      = useState('');
-  const [category,  setCategory]  = useState<Category>('Gold');
+  const [category,  setCategory]  = useState<Category>(catNames[0] ?? '');
   const [basePrice, setBasePrice] = useState('');
   const [photo,     setPhoto]     = useState<string | null>(null);
   const [errors,    setErrors]    = useState<ValidationError[]>([]);
@@ -161,9 +163,9 @@ function AddPlayerForm({ onAdd }: AddPlayerFormProps) {
           value={category}
           onChange={(e) => setCategory(e.target.value as Category)}
         >
-          <option value="Gold">🥇 Gold</option>
-          <option value="Silver">🥈 Silver</option>
-          <option value="Bronze">🥉 Bronze</option>
+          {config.categories.map((cat) => (
+            <option key={cat.name} value={cat.name}>{cat.name}</option>
+          ))}
         </select>
       </div>
 
@@ -195,6 +197,8 @@ interface PlayerTableProps {
 }
 
 function PlayerTable({ players, onRemove }: PlayerTableProps) {
+  const { config } = useTournament();
+
   if (players.length === 0) {
     return (
       <div className={styles.emptyState} role="status">
@@ -216,7 +220,7 @@ function PlayerTable({ players, onRemove }: PlayerTableProps) {
       </thead>
       <tbody>
         {players.map((p) => {
-          const { color } = CATEGORY_STYLE[p.category];
+          const { color } = getCategoryStyle(config, p.category);
           return (
             <tr key={p.id}>
               <td>
@@ -295,8 +299,9 @@ export function SetupTab({ teams, onTeamsChange, players, onPlayersChange }: Set
   );
 
   // Dynamic category counts
-  const catCounts = { Gold: 0, Silver: 0, Bronze: 0 } as Record<Category, number>;
-  players.forEach((p) => catCounts[p.category]++);
+  const catCounts: Record<string, number> = {};
+  config.categories.forEach((c) => { catCounts[c.name] = 0; });
+  players.forEach((p) => { catCounts[p.category] = (catCounts[p.category] ?? 0) + 1; });
   const squadSize  = config.playersPerTeam - 1;
   const totalSlots = config.totalTeams * squadSize;
 
@@ -323,11 +328,11 @@ export function SetupTab({ teams, onTeamsChange, players, onPlayersChange }: Set
           </span>
         </div>
         <div className={styles.statDivider} aria-hidden="true" />
-        {CATEGORIES.map((cat) => (
-          <div key={cat} className={styles.statItem}>
-            <span className={styles.statLabel} style={{ color: CATEGORY_STYLE[cat].color }}>{cat}</span>
-            <span className={styles.statValue} style={{ color: CATEGORY_STYLE[cat].color }}>
-              {catCounts[cat]}
+        {config.categories.map((cat) => (
+          <div key={cat.name} className={styles.statItem}>
+            <span className={styles.statLabel} style={{ color: cat.color }}>{cat.name}</span>
+            <span className={styles.statValue} style={{ color: cat.color }}>
+              {catCounts[cat.name] ?? 0}
             </span>
           </div>
         ))}

@@ -1,4 +1,12 @@
-import type { Category, TournamentConfig, TabId } from '@/types';
+import type { Category, CategoryDefinition, TournamentConfig, TabId } from '@/types';
+
+// ─── Default Categories ──────────────────────────────────────────────────────
+
+export const DEFAULT_CATEGORIES: CategoryDefinition[] = [
+  { name: 'Gold',   color: '#FFD700', bgColor: '#2a1f00', min: 0, max: 3 },
+  { name: 'Silver', color: '#C0C0C0', bgColor: '#1a1a2a', min: 0, max: 4 },
+  { name: 'Bronze', color: '#CD7F32', bgColor: '#1f0f00', min: 0, max: 4 },
+];
 
 // ─── Config Defaults ──────────────────────────────────────────────────────────
 
@@ -8,11 +16,7 @@ export const DEFAULT_CONFIG: TournamentConfig = {
   playersPerTeam: 8, // including captain → squadSize = 7
   budget: 3000,
   minBidReserve: 100,
-  categoryLimits: {
-    Gold:   { max: 3 },
-    Silver: { max: 4 },
-    Bronze: { max: 4 },
-  },
+  categories: DEFAULT_CATEGORIES,
   logoBase64: null,
 };
 
@@ -23,20 +27,52 @@ export function getSquadSize(config: TournamentConfig): number {
   return config.playersPerTeam - 1;
 }
 
+// ─── Category Helpers ────────────────────────────────────────────────────────
+
+/** Look up a CategoryDefinition by its name from config. */
+export function getCategoryDef(
+  config: TournamentConfig,
+  categoryName: Category,
+): CategoryDefinition | undefined {
+  return config.categories.find((c) => c.name === categoryName);
+}
+
+/** Get category style (color + bg) by name from config. Fallback for unknown. */
+export function getCategoryStyle(
+  config: TournamentConfig,
+  categoryName: Category,
+): { color: string; bg: string } {
+  const def = getCategoryDef(config, categoryName);
+  return def
+    ? { color: def.color, bg: def.bgColor }
+    : { color: '#888888', bg: '#1a1a1a' };
+}
+
+/** Get ordered list of category names from config. */
+export function getCategoryNames(config: TournamentConfig): Category[] {
+  return config.categories.map((c) => c.name);
+}
+
 // ─── Bid Increments ───────────────────────────────────────────────────────────
 
-export const BID_INCREMENTS = [10, 25, 50, 100, 200] as const;
+export const BID_INCREMENTS = [20, 50, 100, 200] as const;
 export type BidIncrement = (typeof BID_INCREMENTS)[number];
 
-// ─── Category Visual Config ───────────────────────────────────────────────────
+/** Bid-threshold tiers: below each `upto` value the increment is `inc`. */
+const BID_TIERS: { upto: number; inc: BidIncrement }[] = [
+  { upto: 400,  inc: 20  },
+  { upto: 1000, inc: 50  },
+  { upto: 2000, inc: 100 },
+  { upto: Infinity, inc: 200 },
+];
 
-export const CATEGORY_STYLE: Record<Category, { color: string; bg: string }> = {
-  Gold:   { color: '#FFD700', bg: '#2a1f00' },
-  Silver: { color: '#C0C0C0', bg: '#1a1a2a' },
-  Bronze: { color: '#CD7F32', bg: '#1f0f00' },
-};
-
-export const CATEGORIES: Category[] = ['Gold', 'Silver', 'Bronze'];
+/** Return the single active bid increment for the given current bid amount. */
+export function getActiveIncrement(currentBid: number): BidIncrement {
+  for (const tier of BID_TIERS) {
+    if (currentBid < tier.upto) return tier.inc;
+  }
+  return 200;
+}
 
 // ─── Default Team Colors ──────────────────────────────────────────────────────
 

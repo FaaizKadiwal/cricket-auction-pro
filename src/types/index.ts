@@ -1,14 +1,18 @@
 // ─── Primitive Domain Types ───────────────────────────────────────────────────
 
-export type Category = 'Gold' | 'Silver' | 'Bronze';
+export type Category = string;
 export type PlayerStatus = 'pending' | 'sold' | 'unsold';
 export type ToastType = 'ok' | 'warn';
 export type TabId = 'setup' | 'auction' | 'squads' | 'rules';
 
 // ─── Tournament Configuration ─────────────────────────────────────────────────
 
-export interface CategoryLimit {
-  max: number; // max picks per team; 0 = unlimited (capped by squadSize)
+export interface CategoryDefinition {
+  name: string;    // display name, e.g. "Gold", "Platinum"
+  color: string;   // hex color, e.g. "#FFD700"
+  bgColor: string; // dark background for badges, e.g. "#2a1f00"
+  min: number;     // minimum picks per team (0 = no minimum)
+  max: number;     // maximum picks per team (0 = unlimited)
 }
 
 export interface TournamentConfig {
@@ -17,7 +21,7 @@ export interface TournamentConfig {
   playersPerTeam: number;    // including captain, e.g. 8 → squadSize = 7
   budget: number;            // per team, e.g. 3000
   minBidReserve: number;     // held per remaining slot, e.g. 100
-  categoryLimits: Record<Category, CategoryLimit>;
+  categories: CategoryDefinition[]; // ordered highest → lowest tier
   logoBase64: string | null; // tournament logo image
 }
 
@@ -55,6 +59,7 @@ export interface DemotionResult {
   demoted: boolean;
   newCategory?: Category;
   newBasePrice?: number;
+  halvedInPlace?: boolean;
 }
 
 // ─── UI State ─────────────────────────────────────────────────────────────────

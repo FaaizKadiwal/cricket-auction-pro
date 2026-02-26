@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { TournamentConfig, Team, SoldPlayer } from '@/types';
-import { CATEGORY_STYLE, CATEGORIES } from '@/constants/auction';
+import { getCategoryStyle } from '@/constants/auction';
 import { getSquad, getSpent, getCatCount } from '@/utils/auction';
 import { formatPts } from '@/utils/format';
 import { Avatar } from '@/components/Avatar/Avatar';
@@ -69,7 +69,7 @@ function TeamCard({ team, soldPlayers, config, squadSize }: TeamCardProps) {
         ) : (
           squad.map((p) => (
             <div key={p.id} className={styles.playerRow}>
-              <span className={styles.catDot} style={{ background: CATEGORY_STYLE[p.category].color }} />
+              <span className={styles.catDot} style={{ background: getCategoryStyle(config, p.category).color }} />
               <span className={styles.pName}>{p.name}</span>
               <span className={styles.pPrice}>{formatPts(p.finalPrice)}</span>
             </div>
@@ -88,13 +88,11 @@ function TeamCard({ team, soldPlayers, config, squadSize }: TeamCardProps) {
           <span className={styles.footerValue} style={{ color: 'var(--success)' }}>{formatPts(remaining)}</span>
         </div>
         <div className={styles.catPills}>
-          {CATEGORIES.map((cat) => {
-            const max = config.categoryLimits[cat]?.max ?? 0;
-            if (max <= 0) return null;
-            const cnt = getCatCount(team.id, cat, soldPlayers);
+          {config.categories.map((catDef) => {
+            const cnt = getCatCount(team.id, catDef.name, soldPlayers);
             return (
-              <span key={cat} className={styles.catPill} style={{ color: CATEGORY_STYLE[cat].color, borderColor: `${CATEGORY_STYLE[cat].color}40` }}>
-                {cat[0]}: {cnt}/{max}
+              <span key={catDef.name} className={styles.catPill} style={{ color: catDef.color, borderColor: `${catDef.color}40` }}>
+                {catDef.name[0]}: {cnt}{catDef.max > 0 ? `/${catDef.max}` : ''}
               </span>
             );
           })}

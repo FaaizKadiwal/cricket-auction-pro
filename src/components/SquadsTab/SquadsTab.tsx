@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { Team, SoldPlayer } from '@/types';
-import { CATEGORY_STYLE, CATEGORIES } from '@/constants/auction';
+import { getCategoryStyle } from '@/constants/auction';
 import { getSquad, getSpent, getCatCount } from '@/utils/auction';
 import { formatPts } from '@/utils/format';
 import { useTournament } from '@/context/TournamentContext';
@@ -96,7 +96,7 @@ function TeamSquadCard({ team, soldPlayers }: TeamSquadCardProps) {
           <div className={styles.emptyNote}>No players acquired yet</div>
         ) : (
           squad.map((p) => {
-            const { color } = CATEGORY_STYLE[p.category];
+            const { color } = getCategoryStyle(config, p.category);
             return (
               <div key={p.id} className={styles.playerRow}>
                 <div className={styles.playerLeft}>
@@ -133,20 +133,19 @@ function TeamSquadCard({ team, soldPlayers }: TeamSquadCardProps) {
 
         {/* Category breakdown */}
         <div className={styles.catRow}>
-          {CATEGORIES.map((cat) => {
-            const max = config.categoryLimits[cat]?.max ?? 0;
-            const cnt = getCatCount(team.id, cat, soldPlayers);
+          {config.categories.map((catDef) => {
+            const cnt = getCatCount(team.id, catDef.name, soldPlayers);
             return (
               <span
-                key={cat}
+                key={catDef.name}
                 className={styles.catPill}
                 style={{
-                  background: `${CATEGORY_STYLE[cat].color}18`,
-                  color:      CATEGORY_STYLE[cat].color,
-                  border:     `1px solid ${CATEGORY_STYLE[cat].color}35`,
+                  background: `${catDef.color}18`,
+                  color:      catDef.color,
+                  border:     `1px solid ${catDef.color}35`,
                 }}
               >
-                {cat[0]}: {cnt}{max > 0 ? `/${max}` : ''}
+                {catDef.name[0]}: {cnt}{catDef.max > 0 ? `/${catDef.max}` : ''}
               </span>
             );
           })}

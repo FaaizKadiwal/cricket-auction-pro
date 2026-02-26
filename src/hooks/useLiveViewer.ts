@@ -13,7 +13,7 @@ export interface ViewerState {
   soldPlayers: SoldPlayer[];
   bidding: BiddingPayload | null;
   lastSold: SoldPayload | null;
-  unsoldInfo: { playerName: string; demoted: boolean; newCategory?: string } | null;
+  unsoldInfo: { playerName: string; demoted: boolean; newCategory?: string; halvedInPlace?: boolean } | null;
   connected: boolean;
 }
 
@@ -90,7 +90,7 @@ function viewerReducer(state: ViewerState, action: ViewerAction): ViewerState {
         ...state,
         phase: 'UNSOLD',
         bidding: null,
-        unsoldInfo: { playerName: action.playerName, demoted: action.demoted, newCategory: action.newCategory },
+        unsoldInfo: { playerName: action.playerName, demoted: action.demoted, newCategory: action.newCategory, halvedInPlace: action.halvedInPlace },
         players: action.players,
       };
 

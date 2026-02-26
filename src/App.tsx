@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
-import type { TabId, Team, Player, SoldPlayer, TournamentConfig, DemotionResult, Category } from '@/types';
-import { DEFAULT_TEAM_COLORS, STORAGE_KEYS, CATEGORIES } from '@/constants/auction';
+import type { TabId, Team, Player, SoldPlayer, TournamentConfig, DemotionResult } from '@/types';
+import { DEFAULT_TEAM_COLORS, STORAGE_KEYS, DEFAULT_CATEGORIES } from '@/constants/auction';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useToast } from '@/hooks/useToast';
 import { useBroadcast } from '@/hooks/useBroadcast';
@@ -58,7 +58,7 @@ export default function App() {
 
   // Live viewer broadcast (only active when config exists)
   const broadcast = useBroadcast({
-    config: config ?? { tournamentName: '', totalTeams: 0, playersPerTeam: 0, budget: 0, minBidReserve: 0, categoryLimits: { Gold: { max: 0 }, Silver: { max: 0 }, Bronze: { max: 0 } }, logoBase64: null },
+    config: config ?? { tournamentName: '', totalTeams: 0, playersPerTeam: 0, budget: 0, minBidReserve: 0, categories: DEFAULT_CATEGORIES, logoBase64: null },
     teams,
     players,
     soldPlayers,
@@ -130,16 +130,19 @@ export default function App() {
   const handleUnsold = useCallback(
     (playerId: number): DemotionResult => {
       const player = players.find((p) => p.id === playerId);
-      if (!player) return { demoted: false };
+      if (!player || !config) return { demoted: false };
 
-      const catIndex = CATEGORIES.indexOf(player.category);
-      const lowerCat: Category | null = catIndex < CATEGORIES.length - 1 ? CATEGORIES[catIndex + 1] : null;
+      const categories = config.categories;
+      const catIndex = categories.findIndex((c) => c.name === player.category);
+      const isLowestTier = catIndex === -1 || catIndex >= categories.length - 1;
 
-      if (lowerCat) {
+      if (!isLowestTier) {
+        // Demote to next lower tier
+        const lowerCat = categories[catIndex + 1].name;
         const lowerCatPlayers = players.filter((p) => p.category === lowerCat && p.id !== playerId);
         const newBasePrice = lowerCatPlayers.length > 0
           ? Math.min(...lowerCatPlayers.map((p) => p.basePrice))
-          : config!.minBidReserve;
+          : config.minBidReserve;
 
         setPlayers((prev) =>
           prev.map((p) =>
@@ -151,10 +154,16 @@ export default function App() {
         return { demoted: true, newCategory: lowerCat, newBasePrice };
       }
 
+      // Lowest tier: halve base price, keep pending in same category
+      const halvedPrice = Math.max(1, Math.floor(player.basePrice / 2));
       setPlayers((prev) =>
-        prev.map((p) => (p.id === playerId ? { ...p, status: 'unsold' as const } : p))
+        prev.map((p) =>
+          p.id === playerId
+            ? { ...p, status: 'pending' as const, basePrice: halvedPrice }
+            : p
+        )
       );
-      return { demoted: false };
+      return { demoted: false, halvedInPlace: true, newBasePrice: halvedPrice };
     },
     [players, config, setPlayers]
   );

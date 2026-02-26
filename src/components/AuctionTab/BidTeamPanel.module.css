@@ -90,3 +90,10 @@
 
 .incBtn:not(:disabled):hover { filter: brightness(1.35); }
 .incBtn:disabled { opacity: 0.2; cursor: not-allowed; }
+
+.basePickBtn {
+  font-size: 12px;
+  font-weight: 800;
+  min-width: 24px;
+  flex: 0 0 auto;
+}

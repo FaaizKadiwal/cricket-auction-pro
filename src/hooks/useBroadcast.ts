@@ -20,7 +20,7 @@ export interface BroadcastHandle {
   broadcastBiddingStart: (player: Player, baseBid: number) => void;
   broadcastBidUpdate:    (currentBid: number, teamId: number, logEntry: { teamName: string; teamColor: string; bid: number }) => void;
   broadcastSold:         (payload: SoldPayload, allSold: SoldPlayer[], allPlayers: Player[]) => void;
-  broadcastUnsold:       (playerName: string, demoted: boolean, newCategory: Category | undefined, allPlayers: Player[]) => void;
+  broadcastUnsold:       (playerName: string, demoted: boolean, newCategory: Category | undefined, allPlayers: Player[], halvedInPlace?: boolean) => void;
   broadcastBiddingCancel: () => void;
   broadcastShowSquads:   () => void;
   broadcastShowIdle:     () => void;
@@ -103,10 +103,10 @@ export function useBroadcast({ config, teams, players, soldPlayers }: UseBroadca
     send({ type: 'SOLD', soldPayload: payload, soldPlayers: allSold, players: allPlayers });
   }, [send]);
 
-  const broadcastUnsold = useCallback((playerName: string, demoted: boolean, newCategory: Category | undefined, allPlayers: Player[]) => {
+  const broadcastUnsold = useCallback((playerName: string, demoted: boolean, newCategory: Category | undefined, allPlayers: Player[], halvedInPlace?: boolean) => {
     biddingRef.current = null;
     phaseRef.current = 'UNSOLD';
-    send({ type: 'UNSOLD', playerName, demoted, newCategory, players: allPlayers });
+    send({ type: 'UNSOLD', playerName, demoted, newCategory, halvedInPlace, players: allPlayers });
   }, [send]);
 
   const broadcastBiddingCancel = useCallback(() => {

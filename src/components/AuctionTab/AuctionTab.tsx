@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from 'react';
 import type { Team, Player, SoldPlayer, Category, DemotionResult } from '@/types';
 import type { BidIncrement } from '@/constants/auction';
 import type { BroadcastHandle } from '@/hooks/useBroadcast';
-import { CATEGORY_STYLE, CATEGORIES } from '@/constants/auction';
+import { getCategoryStyle, getActiveIncrement } from '@/constants/auction';
 import { getBidCap, getSquad, getSpent, getCatCount, validateBid } from '@/utils/auction';
 import { formatPts, formatPct, getBarColorToken } from '@/utils/format';
 import { useTournament } from '@/context/TournamentContext';
@@ -53,9 +53,12 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
     () => filterCat === 'All' ? pending : pending.filter((p) => p.category === filterCat),
     [pending, filterCat]
   );
-  const catCounts = useMemo(() => Object.fromEntries(
-    CATEGORIES.map((c) => [c, pending.filter((p) => p.category === c).length])
-  ) as Record<Category, number>, [pending]);
+  const catCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    config.categories.forEach((c) => { counts[c.name] = 0; });
+    pending.forEach((p) => { counts[p.category] = (counts[p.category] ?? 0) + 1; });
+    return counts;
+  }, [pending, config.categories]);
 
   const totalSpent  = useMemo(() => soldPlayers.reduce((s, x) => s + x.finalPrice, 0), [soldPlayers]);
   const leadingTeam = useMemo(() => teams.find((t) => t.id === leadingTeamId) ?? null, [teams, leadingTeamId]);
@@ -89,6 +92,24 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
       ...prev.slice(0, 59),
     ]);
     broadcast?.broadcastBidUpdate(newBid, teamId, { teamName: team.name, teamColor: team.color, bid: newBid });
+  }, [currentPlayer, currentBid, leadingTeamId, teams, soldPlayers, config, onToast, broadcast]);
+
+  const handleBasePick = useCallback((teamId: number) => {
+    if (!currentPlayer) return;
+    const team = teams.find((t) => t.id === teamId);
+    if (!team) return;
+    const result = validateBid(teamId, soldPlayers, currentPlayer.category, currentBid, config);
+    if (!result.valid) {
+      onToast(`🔒 ${team.name}: ${result.reason}`, 'warn');
+      return;
+    }
+    setBidHistory((prev) => [...prev, { bid: currentBid, teamId: leadingTeamId }]);
+    setLeadingTeamId(teamId);
+    setLog((prev) => [
+      { teamName: team.name, teamColor: team.color, bid: currentBid, player: currentPlayer.name },
+      ...prev.slice(0, 59),
+    ]);
+    broadcast?.broadcastBidUpdate(currentBid, teamId, { teamName: team.name, teamColor: team.color, bid: currentBid });
   }, [currentPlayer, currentBid, leadingTeamId, teams, soldPlayers, config, onToast, broadcast]);
 
   const resetStage = useCallback(() => {
@@ -126,14 +147,21 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
     const result = onUnsold(currentPlayer.id);
     if (result.demoted) {
       onToast(`⬇️ ${playerName} moved to ${result.newCategory} (Base: ${formatPts(result.newBasePrice!)} pts)`, 'warn');
+    } else if (result.halvedInPlace) {
+      onToast(`⬇️ ${playerName} base price halved to ${formatPts(result.newBasePrice!)} pts`, 'warn');
     } else {
       onToast(`❌ ${playerName} — UNSOLD`, 'warn');
     }
     // Broadcast unsold with locally computed updated players
-    const updatedPlayers = result.demoted
-      ? players.map((p) => p.id === currentPlayer.id ? { ...p, status: 'pending' as const, category: result.newCategory!, basePrice: result.newBasePrice! } : p)
-      : players.map((p) => p.id === currentPlayer.id ? { ...p, status: 'unsold' as const } : p);
-    broadcast?.broadcastUnsold(playerName, result.demoted, result.newCategory, updatedPlayers);
+    let updatedPlayers: Player[];
+    if (result.demoted) {
+      updatedPlayers = players.map((p) => p.id === currentPlayer.id ? { ...p, status: 'pending' as const, category: result.newCategory!, basePrice: result.newBasePrice! } : p);
+    } else if (result.halvedInPlace) {
+      updatedPlayers = players.map((p) => p.id === currentPlayer.id ? { ...p, status: 'pending' as const, basePrice: result.newBasePrice! } : p);
+    } else {
+      updatedPlayers = players.map((p) => p.id === currentPlayer.id ? { ...p, status: 'unsold' as const } : p);
+    }
+    broadcast?.broadcastUnsold(playerName, result.demoted, result.newCategory, updatedPlayers, result.halvedInPlace);
     // Reset stage without broadcasting cancel
     setCurrentPlayer(null); setCurrentBid(0); setLeadingTeamId(null); setLog([]); setBidHistory([]);
   }, [currentPlayer, players, onUnsold, onToast, broadcast]);
@@ -170,11 +198,11 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
     <main aria-label="Live auction">
       {/* Stats */}
       <div className={styles.statsBar} role="status" aria-live="polite">
-        {CATEGORIES.map((cat) => (
-          <div key={cat} className={styles.statItem}>
-            <span className={styles.statLabel} style={{ color: CATEGORY_STYLE[cat].color }}>{cat}</span>
-            <span className={styles.statValue} style={{ color: CATEGORY_STYLE[cat].color }}>
-              {catCounts[cat]}
+        {config.categories.map((cat) => (
+          <div key={cat.name} className={styles.statItem}>
+            <span className={styles.statLabel} style={{ color: cat.color }}>{cat.name}</span>
+            <span className={styles.statValue} style={{ color: cat.color }}>
+              {catCounts[cat.name] ?? 0}
             </span>
           </div>
         ))}
@@ -228,28 +256,33 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
             {currentPlayer && (
               <div className={styles.stageContent}>
                 {/* Player photo */}
-                <Avatar
-                  src={currentPlayer.photoBase64}
-                  name={currentPlayer.name}
-                  size={96}
-                  color={CATEGORY_STYLE[currentPlayer.category].color}
-                  style={{
-                    margin: '0 auto 12px',
-                    border: `3px solid ${CATEGORY_STYLE[currentPlayer.category].color}`,
-                  }}
-                />
-
-                {/* Category tag */}
-                <div
-                  className={styles.playerCatLabel}
-                  style={{
-                    color:       CATEGORY_STYLE[currentPlayer.category].color,
-                    background:  CATEGORY_STYLE[currentPlayer.category].bg,
-                    border:      `1px solid ${CATEGORY_STYLE[currentPlayer.category].color}40`,
-                  }}
-                >
-                  ◆ {currentPlayer.category.toUpperCase()} CATEGORY ◆
-                </div>
+                {(() => {
+                  const catStyle = getCategoryStyle(config, currentPlayer.category);
+                  return (
+                    <>
+                      <Avatar
+                        src={currentPlayer.photoBase64}
+                        name={currentPlayer.name}
+                        size={96}
+                        color={catStyle.color}
+                        style={{
+                          margin: '0 auto 12px',
+                          border: `3px solid ${catStyle.color}`,
+                        }}
+                      />
+                      <div
+                        className={styles.playerCatLabel}
+                        style={{
+                          color:      catStyle.color,
+                          background: catStyle.bg,
+                          border:     `1px solid ${catStyle.color}40`,
+                        }}
+                      >
+                        ◆ {currentPlayer.category.toUpperCase()} CATEGORY ◆
+                      </div>
+                    </>
+                  );
+                })()}
 
                 <h2 className={styles.playerName}>{currentPlayer.name}</h2>
                 <p className={styles.playerBase}>
@@ -285,6 +318,7 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
                       currentCategory={currentPlayer.category}
                       leadingTeamId={leadingTeamId}
                       onBid={handleBid}
+                      onBasePick={handleBasePick}
                     />
                   ))}
                 </div>
@@ -313,19 +347,22 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
             <div className={styles.poolHeader}>
               <div className={styles.poolTitle}>Player Pool</div>
               <div className={styles.filterRow} role="group" aria-label="Filter by category">
-                {(['All', ...CATEGORIES] as (Category | 'All')[]).map((cat) => (
-                  <button
-                    key={cat}
-                    className={styles.filterBtn}
-                    onClick={() => setFilterCat(cat)}
-                    aria-pressed={filterCat === cat}
-                    style={{
-                      background:  filterCat === cat ? 'var(--accent)' : 'var(--surface2)',
-                      color:       filterCat === cat ? '#000' : cat === 'All' ? 'var(--text)' : CATEGORY_STYLE[cat as Category]?.color ?? 'var(--text)',
-                      borderColor: filterCat === cat ? 'var(--accent)' : cat === 'All' ? 'var(--border)' : `${CATEGORY_STYLE[cat as Category]?.color ?? 'var(--border)'}60`,
-                    }}
-                  >{cat}</button>
-                ))}
+                {(['All', ...config.categories.map((c) => c.name)] as (Category | 'All')[]).map((cat) => {
+                  const catStyle = cat === 'All' ? null : getCategoryStyle(config, cat);
+                  return (
+                    <button
+                      key={cat}
+                      className={styles.filterBtn}
+                      onClick={() => setFilterCat(cat)}
+                      aria-pressed={filterCat === cat}
+                      style={{
+                        background:  filterCat === cat ? 'var(--accent)' : 'var(--surface2)',
+                        color:       filterCat === cat ? '#000' : catStyle?.color ?? 'var(--text)',
+                        borderColor: filterCat === cat ? 'var(--accent)' : catStyle ? `${catStyle.color}60` : 'var(--border)',
+                      }}
+                    >{cat}</button>
+                  );
+                })}
               </div>
             </div>
 
@@ -345,7 +382,7 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
                 </thead>
                 <tbody>
                   {displayPending.map((p) => {
-                    const { color } = CATEGORY_STYLE[p.category];
+                    const { color } = getCategoryStyle(config, p.category);
                     return (
                       <tr key={p.id}>
                         <td>
@@ -417,9 +454,10 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
               ? getBidCap(team.id, soldPlayers, config)
               : { cap: 0, reserve: 0, slotsAfterWin: 0 };
 
+            const activeInc = currentPlayer ? getActiveIncrement(currentBid) : 0;
             const capCls = !currentPlayer ? ''
               : cap <= 0 ? styles.capDanger
-              : cap < currentBid + 50 ? styles.capWarn
+              : cap < currentBid + activeInc ? styles.capWarn
               : styles.capSafe;
 
             return (
@@ -487,20 +525,19 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
                 )}
 
                 <div className={styles.catBadges}>
-                  {CATEGORIES.map((cat) => {
-                    const max = config.categoryLimits[cat]?.max ?? 0;
-                    const cnt = getCatCount(team.id, cat, soldPlayers);
+                  {config.categories.map((catDef) => {
+                    const cnt = getCatCount(team.id, catDef.name, soldPlayers);
                     return (
                       <span
-                        key={cat}
+                        key={catDef.name}
                         className={styles.catBadge}
                         style={{
-                          background: `${CATEGORY_STYLE[cat].color}18`,
-                          color: CATEGORY_STYLE[cat].color,
-                          border: `1px solid ${CATEGORY_STYLE[cat].color}35`,
+                          background: `${catDef.color}18`,
+                          color: catDef.color,
+                          border: `1px solid ${catDef.color}35`,
                         }}
                       >
-                        {cat[0]}: {cnt}{max > 0 ? `/${max}` : ''}
+                        {catDef.name[0]}: {cnt}{catDef.max > 0 ? `/${catDef.max}` : ''}
                       </span>
                     );
                   })}
@@ -514,7 +551,7 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
               <p className={styles.unsoldTitle}>Unsold ({unsold.length})</p>
               {unsold.map((p) => (
                 <span key={p.id} className={styles.unsoldChip}>
-                  <span style={{ color: CATEGORY_STYLE[p.category].color, fontSize: 10, fontWeight: 700 }}>
+                  <span style={{ color: getCategoryStyle(config, p.category).color, fontSize: 10, fontWeight: 700 }}>
                     {p.category[0]}
                   </span>
                   {p.name}

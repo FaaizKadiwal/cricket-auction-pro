@@ -60,6 +60,7 @@ export interface UnsoldMessage {
   playerName: string;
   demoted: boolean;
   newCategory?: Category;
+  halvedInPlace?: boolean;
   players: Player[];
 }
 

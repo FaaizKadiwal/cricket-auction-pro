@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import type { TournamentConfig, Category, ValidationError } from '@/types';
-import { DEFAULT_CONFIG, CATEGORY_STYLE } from '@/constants/auction';
+import { useState, Fragment } from 'react';
+import type { TournamentConfig, CategoryDefinition, ValidationError } from '@/types';
+import { DEFAULT_CONFIG } from '@/constants/auction';
 import { validateConfig } from '@/utils/auction';
 import { formatPts } from '@/utils/format';
 import { ImageUpload } from '@/components/ImageUpload/ImageUpload';
@@ -131,60 +131,169 @@ function Step1({ draft, onChange, errors }: Step1Props) {
   );
 }
 
-// ─── Step 2: Category Limits ──────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Derive a dark bgColor from a hex color for badge backgrounds */
+function deriveBgColor(hex: string): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `#${Math.round(r * 0.16).toString(16).padStart(2, '0')}${Math.round(g * 0.16).toString(16).padStart(2, '0')}${Math.round(b * 0.16).toString(16).padStart(2, '0')}`;
+}
+
+function blankCategory(): CategoryDefinition {
+  return { name: '', color: '#888888', bgColor: '#151515', min: 0, max: 0 };
+}
+
+// ─── Step 2: Custom Categories ───────────────────────────────────────────────
 
 interface Step2Props {
   draft: TournamentConfig;
   onChange: (partial: Partial<TournamentConfig>) => void;
+  errors: ValidationError[];
 }
 
-function Step2({ draft, onChange }: Step2Props) {
+function Step2({ draft, onChange, errors }: Step2Props) {
   const squadSize = draft.playersPerTeam - 1;
+  const cats = draft.categories;
 
-  function setCatLimit(cat: Category, max: number) {
-    onChange({
-      categoryLimits: {
-        ...draft.categoryLimits,
-        [cat]: { max },
-      },
+  function updateCat(index: number, partial: Partial<CategoryDefinition>) {
+    const updated = cats.map((c, i) => {
+      if (i !== index) return c;
+      const merged = { ...c, ...partial };
+      // Auto-derive bgColor when color changes
+      if (partial.color) merged.bgColor = deriveBgColor(partial.color);
+      return merged;
     });
+    onChange({ categories: updated });
   }
+
+  function addCategory() {
+    onChange({ categories: [...cats, blankCategory()] });
+  }
+
+  function removeCategory(index: number) {
+    onChange({ categories: cats.filter((_, i) => i !== index) });
+  }
+
+  function moveCategory(index: number, dir: -1 | 1) {
+    const target = index + dir;
+    if (target < 0 || target >= cats.length) return;
+    const updated = [...cats];
+    [updated[index], updated[target]] = [updated[target], updated[index]];
+    onChange({ categories: updated });
+  }
+
+  const catErr = getErr(errors, 'categories');
 
   return (
     <div>
-      <h2 className={styles.stepTitle}>Category Limits</h2>
+      <h2 className={styles.stepTitle}>Player Categories</h2>
       <p className={styles.stepDesc}>
-        Set how many players from each tier a team may pick. Players are categorised as you add
-        them to the pool — the counts are dynamic, not fixed. Set max to 0 for no limit
-        (capped only by total squad size of {squadSize}).
+        Define tiers from highest to lowest. Unsold players demote to the next tier;
+        the lowest-tier unsold players get their base price halved. Set max to 0 for
+        no limit (capped by squad size of {squadSize}).
       </p>
 
-      <div className={styles.catGrid}>
-        {(['Gold', 'Silver', 'Bronze'] as Category[]).map((cat) => {
-          const { color, bg } = CATEGORY_STYLE[cat];
-          const currentMax = draft.categoryLimits[cat]?.max ?? 0;
+      {catErr && <div className={styles.fieldError} style={{ marginBottom: 12 }}>{catErr}</div>}
+
+      <div className={styles.catList}>
+        {cats.map((cat, i) => {
+          const nameErr = getErr(errors, `cat_name_${i}`);
           return (
-            <div key={cat} className={styles.catCard} style={{ borderColor: `${color}40` }}>
-              <div className={styles.catLabel} style={{ color }}>{cat}</div>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Max picks / team</label>
-                <input
-                  className={styles.input}
-                  type="number" min={0} max={squadSize}
-                  style={{ background: bg, borderColor: `${color}30`, color }}
-                  value={currentMax}
-                  onChange={(e) => setCatLimit(cat, Number(e.target.value))}
-                />
-                <span className={styles.hint}>{currentMax === 0 ? 'No limit' : `≤ ${currentMax} ${cat} players`}</span>
+            <div key={i} className={styles.catCard} style={{ borderColor: `${cat.color}40` }}>
+              <div className={styles.catCardHeader}>
+                <div className={styles.catTierBadge} style={{ background: cat.bgColor, color: cat.color, borderColor: `${cat.color}30` }}>
+                  Tier {i + 1}
+                </div>
+                <div className={styles.catActions}>
+                  <button
+                    type="button"
+                    className={styles.catArrowBtn}
+                    disabled={i === 0}
+                    onClick={() => moveCategory(i, -1)}
+                    aria-label="Move up"
+                  >↑</button>
+                  <button
+                    type="button"
+                    className={styles.catArrowBtn}
+                    disabled={i === cats.length - 1}
+                    onClick={() => moveCategory(i, 1)}
+                    aria-label="Move down"
+                  >↓</button>
+                  {cats.length > 1 && (
+                    <button
+                      type="button"
+                      className={styles.catRemoveBtn}
+                      onClick={() => removeCategory(i)}
+                      aria-label={`Remove ${cat.name || 'category'}`}
+                    >×</button>
+                  )}
+                </div>
               </div>
+
+              <div className={styles.catFields}>
+                <div className={styles.catFieldName}>
+                  <label className={styles.label}>Name</label>
+                  <input
+                    className={`${styles.input} ${nameErr ? styles.inputError : ''}`}
+                    value={cat.name}
+                    maxLength={30}
+                    placeholder="e.g. Gold"
+                    onChange={(e) => updateCat(i, { name: e.target.value })}
+                  />
+                  {nameErr && <span className={styles.fieldError}>{nameErr}</span>}
+                </div>
+
+                <div className={styles.catFieldColor}>
+                  <label className={styles.label}>Color</label>
+                  <input
+                    type="color"
+                    className={styles.colorInput}
+                    value={cat.color}
+                    title="Category color"
+                    onChange={(e) => updateCat(i, { color: e.target.value })}
+                  />
+                </div>
+
+                <div className={styles.catFieldNum}>
+                  <label className={styles.label}>Min</label>
+                  <input
+                    className={styles.input}
+                    type="number" min={0} max={squadSize}
+                    value={cat.min}
+                    title="Minimum picks per team"
+                    onChange={(e) => updateCat(i, { min: Number(e.target.value) })}
+                  />
+                </div>
+
+                <div className={styles.catFieldNum}>
+                  <label className={styles.label}>Max</label>
+                  <input
+                    className={styles.input}
+                    type="number" min={0} max={squadSize}
+                    value={cat.max}
+                    title="Maximum picks per team"
+                    onChange={(e) => updateCat(i, { max: Number(e.target.value) })}
+                  />
+                </div>
+              </div>
+
+              <span className={styles.hint}>
+                {cat.min > 0 ? `Min ${cat.min}` : 'No minimum'}
+                {' · '}
+                {cat.max > 0 ? `Max ${cat.max} per team` : 'No limit'}
+              </span>
             </div>
           );
         })}
       </div>
 
-      <div style={{ marginTop: 20, padding: '12px 16px', background: 'var(--surface2)', borderRadius: 10, fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>
-        💡 Players will be automatically counted per category as you add them to the pool.
-        The auctioneer sees live counts during bidding.
+      <button type="button" className={styles.addCatBtn} onClick={addCategory}>+ Add Category</button>
+
+      <div style={{ marginTop: 16, padding: '12px 16px', background: 'var(--surface2)', borderRadius: 10, fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>
+        Tier order matters — unsold players demote down the list. The lowest tier's unsold players
+        get their base price halved instead of being removed.
       </div>
     </div>
   );
@@ -207,9 +316,7 @@ function Step3({ draft }: Step3Props) {
     { label: 'Budget / Team',  value: `${formatPts(draft.budget)} pts` },
     { label: 'Total Pot',      value: `${formatPts(totalPot)} pts` },
     { label: 'Min Reserve',    value: `${draft.minBidReserve} pts / slot` },
-    { label: 'Gold Limit',     value: draft.categoryLimits.Gold.max === 0 ? 'No limit' : `≤ ${draft.categoryLimits.Gold.max}` },
-    { label: 'Silver Limit',   value: draft.categoryLimits.Silver.max === 0 ? 'No limit' : `≤ ${draft.categoryLimits.Silver.max}` },
-    { label: 'Bronze Limit',   value: draft.categoryLimits.Bronze.max === 0 ? 'No limit' : `≤ ${draft.categoryLimits.Bronze.max}` },
+    { label: 'Categories',     value: `${draft.categories.length} tiers` },
   ];
 
   return (
@@ -231,8 +338,23 @@ function Step3({ draft }: Step3Props) {
         ))}
       </div>
 
+      {/* Dynamic category summary */}
+      <div className={styles.catSummaryRow}>
+        {draft.categories.map((cat, i) => (
+          <div key={i} className={styles.catSummaryChip} style={{ borderColor: `${cat.color}40`, color: cat.color }}>
+            <span className={styles.catSummaryDot} style={{ background: cat.color }} />
+            <span className={styles.catSummaryName}>{cat.name}</span>
+            <span className={styles.catSummaryLimits}>
+              {cat.min > 0 ? `min ${cat.min}` : ''}
+              {cat.min > 0 && cat.max > 0 ? ' · ' : ''}
+              {cat.max > 0 ? `max ${cat.max}` : cat.min === 0 ? 'no limit' : ''}
+            </span>
+          </div>
+        ))}
+      </div>
+
       <div className={styles.confirmNote}>
-        🚀 After launching, you can add teams, upload logos and photos, add players with their
+        After launching, you can add teams, upload logos and photos, add players with their
         base prices, then start the live auction. All data is auto-saved — a refresh won't lose progress.
       </div>
     </div>
@@ -254,6 +376,27 @@ export function ConfigScreen({ onLaunch }: ConfigScreenProps) {
   function handleNext() {
     if (step === 1) {
       const errs = validateConfig(draft.totalTeams, draft.playersPerTeam, draft.budget, draft.minBidReserve);
+      if (errs.length) { setErrors(errs); return; }
+    }
+    if (step === 2) {
+      const errs: ValidationError[] = [];
+      if (draft.categories.length === 0) {
+        errs.push({ field: 'categories', message: 'At least one category is required.' });
+      }
+      const names = new Set<string>();
+      draft.categories.forEach((cat, i) => {
+        const trimmed = cat.name.trim();
+        if (!trimmed) {
+          errs.push({ field: `cat_name_${i}`, message: 'Name is required.' });
+        } else if (names.has(trimmed.toLowerCase())) {
+          errs.push({ field: `cat_name_${i}`, message: 'Duplicate name.' });
+        } else {
+          names.add(trimmed.toLowerCase());
+        }
+        if (cat.max > 0 && cat.min > cat.max) {
+          errs.push({ field: `cat_name_${i}`, message: 'Min cannot exceed max.' });
+        }
+      });
       if (errs.length) { setErrors(errs); return; }
     }
     setStep((s) => Math.min(3, s + 1) as Step);
@@ -280,24 +423,26 @@ export function ConfigScreen({ onLaunch }: ConfigScreenProps) {
         {/* Step indicators */}
         <div className={styles.steps} aria-label="Setup progress">
           {([1, 2, 3] as Step[]).map((s, i) => (
-            <div key={s} className={styles.step}>
+            <Fragment key={s}>
               {i > 0 && (
                 <div className={`${styles.stepLine} ${step > s - 1 ? styles.stepLineDone : ''}`} aria-hidden="true" />
               )}
-              <div className={`${styles.stepDot} ${step === s ? styles.stepDotActive : step > s ? styles.stepDotDone : ''}`}>
-                {step > s ? '✓' : s}
+              <div className={styles.step}>
+                <div className={`${styles.stepDot} ${step === s ? styles.stepDotActive : step > s ? styles.stepDotDone : ''}`}>
+                  {step > s ? '✓' : s}
+                </div>
+                <span className={`${styles.stepLabel} ${step === s ? styles.stepLabelActive : ''}`}>
+                  {STEP_LABELS[s]}
+                </span>
               </div>
-              <span className={`${styles.stepLabel} ${step === s ? styles.stepLabelActive : ''}`}>
-                {STEP_LABELS[s]}
-              </span>
-            </div>
+            </Fragment>
           ))}
         </div>
 
         {/* Body */}
         <div className={styles.body}>
           {step === 1 && <Step1 draft={draft} onChange={updateDraft} errors={errors} />}
-          {step === 2 && <Step2 draft={draft} onChange={updateDraft} />}
+          {step === 2 && <Step2 draft={draft} onChange={updateDraft} errors={errors} />}
           {step === 3 && <Step3 draft={draft} />}
         </div>
 
