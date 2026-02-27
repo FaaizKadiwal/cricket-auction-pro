@@ -1,4 +1,5 @@
 import type { ToastMessage } from '@/types';
+import { Icon } from '@/components/Icon/Icon';
 import styles from './Toast.module.css';
 
 interface ToastContainerProps {
@@ -24,7 +25,9 @@ export function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
           role="alert"
         >
           <span className={styles.icon} aria-hidden="true">
-            {t.type === 'ok' ? '✅' : '⚠️'}
+            {t.type === 'ok'
+              ? <Icon name="check-circle" size={16} />
+              : <Icon name="alert-triangle" size={16} />}
           </span>
           <span className={styles.message}>{t.msg}</span>
           <button
@@ -32,7 +35,7 @@ export function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
             onClick={() => onDismiss(t.id)}
             aria-label="Dismiss notification"
           >
-            ✕
+            <Icon name="x" size={12} />
           </button>
         </div>
       ))}

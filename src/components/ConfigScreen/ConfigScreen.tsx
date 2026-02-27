@@ -4,6 +4,7 @@ import { DEFAULT_CONFIG } from '@/constants/auction';
 import { validateConfig } from '@/utils/auction';
 import { formatPts } from '@/utils/format';
 import { ImageUpload } from '@/components/ImageUpload/ImageUpload';
+import { Icon } from '@/components/Icon/Icon';
 import styles from './ConfigScreen.module.css';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -61,7 +62,7 @@ function Step1({ draft, onChange, errors, lockStructural }: Step1Props) {
               size={72}
               circle={false}
               maxDim={200}
-              placeholder="🏏"
+              placeholder={<Icon name="trophy" size={28} />}
             />
           </div>
           <div className={styles.nameCol}>
@@ -463,13 +464,13 @@ export function ConfigScreen({
 
         {/* Header */}
         <div className={styles.panelHeader}>
-          <span className={styles.logo} aria-hidden="true">🏏</span>
+          <span className={styles.logo} aria-hidden="true"><Icon name="trophy" size={28} /></span>
           <div className={styles.titleBlock}>
             <div className={styles.appTitle}>Cricket Auction Pro</div>
             <div className={styles.appSub}>{isEdit ? 'Edit Tournament Settings' : 'Tournament Setup Wizard'}</div>
           </div>
           {isEdit && onCancel && (
-            <button className={styles.closeBtn} onClick={onCancel} aria-label="Close editor">✕</button>
+            <button className={styles.closeBtn} onClick={onCancel} aria-label="Close editor"><Icon name="x" size={14} /></button>
           )}
         </div>
 
@@ -482,7 +483,7 @@ export function ConfigScreen({
               )}
               <div className={styles.step}>
                 <div className={`${styles.stepDot} ${step === s ? styles.stepDotActive : step > s ? styles.stepDotDone : ''}`}>
-                  {step > s ? '✓' : s}
+                  {step > s ? <Icon name="check" size={12} /> : s}
                 </div>
                 <span className={`${styles.stepLabel} ${step === s ? styles.stepLabelActive : ''}`}>
                   {STEP_LABELS[s]}
@@ -525,7 +526,7 @@ export function ConfigScreen({
           {step < 3
             ? <button className={styles.btnNext} onClick={handleNext}>Next →</button>
             : <button className={styles.btnLaunch} onClick={handleFinish}>
-                {isEdit ? '💾 Save Changes' : '🚀 Launch Tournament'}
+                {isEdit ? <><Icon name="save" size={14} /> Save Changes</> : <><Icon name="rocket" size={14} /> Launch Tournament</>}
               </button>
           }
         </div>

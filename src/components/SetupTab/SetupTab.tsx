@@ -6,6 +6,7 @@ import { formatPts } from '@/utils/format';
 import { useTournament } from '@/context/TournamentContext';
 import { ImageUpload } from '@/components/ImageUpload/ImageUpload';
 import { Avatar } from '@/components/Avatar/Avatar';
+import { Icon } from '@/components/Icon/Icon';
 import styles from './SetupTab.module.css';
 
 // ─── Team Card ────────────────────────────────────────────────────────────────
@@ -35,7 +36,7 @@ function TeamCard({ team, index, onChange }: TeamCardProps) {
             size={72}
             circle={false}
             maxDim={300}
-            placeholder="🛡️"
+            placeholder={<Icon name="shield" size={28} />}
           />
           <div className={styles.teamCardTextFields}>
             <div className={styles.formGroup}>
@@ -73,7 +74,7 @@ function TeamCard({ team, index, onChange }: TeamCardProps) {
             size={60}
             circle={true}
             maxDim={200}
-            placeholder="👤"
+            placeholder={<Icon name="user" size={24} />}
           />
           <div style={{ flex: 1 }}>
             <div className={styles.formGroup}>
@@ -167,7 +168,7 @@ function PlayerForm({ editingPlayer, onAdd, onUpdate, onCancelEdit }: PlayerForm
           size={80}
           circle={true}
           maxDim={200}
-          placeholder="👤"
+          placeholder={<Icon name="user" size={32} />}
         />
       </div>
 
@@ -216,7 +217,7 @@ function PlayerForm({ editingPlayer, onAdd, onUpdate, onCancelEdit }: PlayerForm
       </div>
 
       <button className={styles.addBtn} onClick={handleSubmit}>
-        {isEditing ? '💾 Save Changes' : '+ Add Player'}
+        {isEditing ? <><Icon name="save" size={14} /> Save Changes</> : '+ Add Player'}
       </button>
       {isEditing && (
         <button className={styles.cancelBtn} onClick={onCancelEdit}>
@@ -242,7 +243,7 @@ function PlayerTable({ players, editingPlayerId, onRemove, onEdit }: PlayerTable
   if (players.length === 0) {
     return (
       <div className={styles.emptyState} role="status">
-        <div className={styles.emptyIcon} aria-hidden="true">👤</div>
+        <div className={styles.emptyIcon} aria-hidden="true"><Icon name="user" size={36} /></div>
         <p className={styles.emptyText}>No players added yet</p>
       </div>
     );
@@ -297,13 +298,13 @@ function PlayerTable({ players, editingPlayerId, onRemove, onEdit }: PlayerTable
                       onClick={() => isBeingEdited ? undefined : onEdit(p)}
                       aria-label={`Edit ${p.name}`}
                       aria-pressed={isBeingEdited}
-                    >✏️</button>
+                    ><Icon name="pencil" size={13} /></button>
                   )}
                   <button
                     className={styles.removeBtn}
                     onClick={() => onRemove(p.id)}
                     aria-label={`Remove ${p.name}`}
-                  >✕</button>
+                  ><Icon name="x" size={12} /></button>
                 </div>
               </td>
             </tr>
@@ -424,14 +425,17 @@ export function SetupTab({ teams, onTeamsChange, players, onPlayersChange }: Set
 
       {/* Sub-nav */}
       <div className={styles.subNav} role="tablist">
-        {([['teams', '🏟️ Teams & Captains'], ['players', '👤 Player Pool']] as [View, string][]).map(([v, label]) => (
+        {([
+            { id: 'teams' as View,   label: 'Teams & Captains', icon: 'shield' as const },
+            { id: 'players' as View, label: 'Player Pool',       icon: 'user'   as const },
+          ]).map(({ id, label, icon }) => (
           <button
-            key={v}
+            key={id}
             role="tab"
-            aria-selected={view === v}
-            className={`${styles.subNavBtn} ${view === v ? styles.subNavBtnActive : ''}`}
-            onClick={() => setView(v)}
-          >{label}</button>
+            aria-selected={view === id}
+            className={`${styles.subNavBtn} ${view === id ? styles.subNavBtnActive : ''}`}
+            onClick={() => setView(id)}
+          ><Icon name={icon} size={14} /> {label}</button>
         ))}
       </div>
 

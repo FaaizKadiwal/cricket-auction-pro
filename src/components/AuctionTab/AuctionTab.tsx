@@ -7,6 +7,7 @@ import { getBidCap, getSquad, getSpent, getCatCount, validateBid } from '@/utils
 import { formatPts, formatPct, getBarColorToken } from '@/utils/format';
 import { useTournament } from '@/context/TournamentContext';
 import { Avatar } from '@/components/Avatar/Avatar';
+import { Icon } from '@/components/Icon/Icon';
 import { BidTeamPanel } from './BidTeamPanel';
 import styles from './AuctionTab.module.css';
 
@@ -80,7 +81,7 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
     if (!team) return;
     const result = validateBid(teamId, soldPlayers, currentPlayer.category, newBid, config);
     if (!result.valid) {
-      onToast(`🔒 ${team.name}: ${result.reason}`, 'warn');
+      onToast(`${team.name}: ${result.reason}`, 'warn');
       return;
     }
     setBidHistory((prev) => [...prev, { bid: currentBid, teamId: leadingTeamId }]);
@@ -99,7 +100,7 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
     if (!team) return;
     const result = validateBid(teamId, soldPlayers, currentPlayer.category, currentBid, config);
     if (!result.valid) {
-      onToast(`🔒 ${team.name}: ${result.reason}`, 'warn');
+      onToast(`${team.name}: ${result.reason}`, 'warn');
       return;
     }
     setBidHistory((prev) => [...prev, { bid: currentBid, teamId: leadingTeamId }]);
@@ -135,7 +136,7 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
     const updatedPlayers = players.map((p) => p.id === currentPlayer.id ? { ...p, status: 'sold' as const } : p);
     broadcast?.broadcastSold(soldPayload, updatedSold, updatedPlayers);
 
-    onToast(`✅ ${currentPlayer.name} SOLD to ${team.name} for ${formatPts(currentBid)} pts!`, 'ok');
+    onToast(`${currentPlayer.name} SOLD to ${team.name} for ${formatPts(currentBid)} pts!`, 'ok');
     // Reset stage without broadcasting cancel (sale broadcast takes priority)
     setCurrentPlayer(null); setCurrentBid(0); setLeadingTeamId(null); setLog([]); setBidHistory([]);
   }, [currentPlayer, leadingTeamId, currentBid, teams, soldPlayers, players, onSell, onToast, broadcast]);
@@ -145,11 +146,11 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
     const playerName = currentPlayer.name;
     const result = onUnsold(currentPlayer.id);
     if (result.demoted) {
-      onToast(`⬇️ ${playerName} moved to ${result.newCategory} (Base: ${formatPts(result.newBasePrice!)} pts)`, 'warn');
+      onToast(`${playerName} moved to ${result.newCategory} (Base: ${formatPts(result.newBasePrice!)} pts)`, 'warn');
     } else if (result.halvedInPlace) {
-      onToast(`⬇️ ${playerName} base price halved to ${formatPts(result.newBasePrice!)} pts`, 'warn');
+      onToast(`${playerName} base price halved to ${formatPts(result.newBasePrice!)} pts`, 'warn');
     } else {
-      onToast(`❌ ${playerName} — UNSOLD`, 'warn');
+      onToast(`${playerName} — UNSOLD`, 'warn');
     }
     // Broadcast unsold with locally computed updated players
     let updatedPlayers: Player[];
@@ -180,13 +181,13 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
     setLeadingTeamId(null);
     setLog([]);
     setBidHistory([]);
-    onToast(`🔄 Bidding restarted for ${currentPlayer.name}`, 'warn');
+    onToast(`Bidding restarted for ${currentPlayer.name}`, 'warn');
   }, [currentPlayer, onToast]);
 
   const handleUndoSale = useCallback(() => {
     const undone = onUndoLastSale();
     if (undone) {
-      onToast(`↩️ Sale undone — ${undone.name} returned to pool`, 'warn');
+      onToast(`Sale undone — ${undone.name} returned to pool`, 'warn');
       const updatedSold = soldPlayers.filter((s) => s.id !== undone.id);
       const updatedPlayers = players.map((p) => p.id === undone.id ? { ...p, status: 'pending' as const } : p);
       broadcast?.broadcastUndoSale(updatedSold, updatedPlayers);
@@ -229,22 +230,22 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
             {!currentPlayer && (
               <div className={styles.stageContent}>
                 <div className={styles.emptyStage}>
-                  <div className={styles.emptyIcon} aria-hidden="true">🎯</div>
+                  <div className={styles.emptyIcon} aria-hidden="true"><Icon name="crosshair" size={40} /></div>
                   <p className={styles.emptyTitle}>Select a player to open bidding</p>
                   <p style={{ fontSize: 13 }}>{pending.length} player{pending.length !== 1 ? 's' : ''} remaining</p>
                   {soldPlayers.length > 0 && (
                     <button className={styles.btnUndoSale} onClick={handleUndoSale}>
-                      ↩ Undo Last Sale ({soldPlayers[soldPlayers.length - 1].name})
+                      <Icon name="undo" size={13} /> Undo Last Sale ({soldPlayers[soldPlayers.length - 1].name})
                     </button>
                   )}
                   {broadcast && (
                     <div className={styles.liveControls}>
                       <span className={styles.liveControlLabel}>Live Viewer:</span>
                       <button className={styles.btnLiveSquads} onClick={() => broadcast.broadcastShowSquads()} aria-label="Show squads on live viewer">
-                        👥 Show Squads
+                        <Icon name="users" size={13} /> Show Squads
                       </button>
                       <button className={styles.btnLiveIdle} onClick={() => broadcast.broadcastShowIdle()} aria-label="Show tournament logo on live viewer">
-                        🏏 Show Logo
+                        <Icon name="monitor" size={13} /> Show Logo
                       </button>
                     </div>
                   )}
@@ -298,7 +299,7 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
                     {leadingTeam ? (
                       <>
                         <Avatar src={leadingTeam.logoBase64} name={leadingTeam.name} size={18} color={leadingTeam.color} square />
-                        <span>🏆 <strong>{leadingTeam.name}</strong></span>
+                        <span><Icon name="trophy" size={14} /> <strong>{leadingTeam.name}</strong></span>
                       </>
                     ) : (
                       <span>No bids yet</span>
@@ -325,15 +326,15 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
                 <div className={styles.actionArea}>
                   <div className={styles.actionRow}>
                     <button className={styles.btnSold} onClick={confirmSale} disabled={!leadingTeamId}>
-                      🔨 SOLD{leadingTeam ? ` — ${leadingTeam.name}` : ''}
+                      <Icon name="gavel" size={14} /> SOLD{leadingTeam ? ` — ${leadingTeam.name}` : ''}
                     </button>
-                    <button className={styles.btnUnsold} onClick={markUnsold}>❌ Unsold</button>
+                    <button className={styles.btnUnsold} onClick={markUnsold}><Icon name="x-circle" size={14} /> Unsold</button>
                   </div>
                   <div className={styles.actionRowSecondary}>
                     <button className={styles.btnUndo} onClick={undoLastBid} disabled={bidHistory.length === 0}>
                       ↩ Undo Bid
                     </button>
-                    <button className={styles.btnRestart} onClick={restartBidding}>🔄 Restart</button>
+                    <button className={styles.btnRestart} onClick={restartBidding}><Icon name="refresh" size={13} /> Restart</button>
                     <button className={styles.btnCancel} onClick={resetStage}>← Cancel</button>
                   </div>
                 </div>
@@ -405,7 +406,7 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
                             disabled={!!currentPlayer}
                             onClick={() => startBidding(p)}
                             aria-label={`Open bidding for ${p.name}`}
-                          >🎯 Bid</button>
+                          ><Icon name="crosshair" size={12} /> Bid</button>
                         </td>
                       </tr>
                     );
@@ -418,7 +419,7 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
           {/* Log */}
           {log.length > 0 && (
             <div className={styles.logCard}>
-              <div className={styles.poolTitle} style={{ fontSize: 15, marginBottom: 10 }}>📋 Bid Log</div>
+              <div className={styles.poolTitle} style={{ fontSize: 15, marginBottom: 10 }}><Icon name="list" size={14} /> Bid Log</div>
               <div className={styles.logScroll} role="log" aria-live="polite">
                 {log.map((e, i) => (
                   <div key={i} className={styles.logEntry}>
@@ -434,11 +435,11 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
 
         {/* ── RIGHT SIDEBAR ── */}
         <aside className={styles.sidebar} aria-label="Team budgets">
-          <div className={styles.sidebarTitle}>💰 Budgets &amp; Caps</div>
+          <div className={styles.sidebarTitle}><Icon name="coins" size={14} /> Budgets &amp; Caps</div>
 
           {currentPlayer && (
             <div className={styles.capBanner} role="note">
-              🔒 Bid caps shown — teams must keep {config.minBidReserve} pts per remaining slot in reserve.
+              <Icon name="lock" size={12} /> Bid caps shown — teams must keep {config.minBidReserve} pts per remaining slot in reserve.
             </div>
           )}
 
@@ -470,7 +471,7 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
                 <div className={styles.sbTeamHeader}>
                   <Avatar src={team.logoBase64} name={team.name} size={36} color={team.color} square />
                   <div className={styles.sbTeamInfo}>
-                    {isLeading && <div className={styles.sbLeadTag} style={{ color: team.color }}>🏆 Leader</div>}
+                    {isLeading && <div className={styles.sbLeadTag} style={{ color: team.color }}><Icon name="trophy" size={11} /> Leader</div>}
                     <div className={styles.sbTeamName} style={{ color: team.color }}>
                       {team.name || `Team ${team.id}`}
                     </div>
@@ -510,7 +511,7 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
                 {currentPlayer && (
                   <>
                     <div className={styles.capDetailRow}>
-                      <span className={styles.capDetailLabel}>🔒 Max Bid</span>
+                      <span className={styles.capDetailLabel}><Icon name="lock" size={11} /> Max Bid</span>
                       <span className={`${styles.capPill} ${capCls}`}>
                         {cap <= 0 ? 'CAPPED OUT' : `${formatPts(cap)} pts`}
                       </span>

@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { Icon } from '@/components/Icon/Icon';
 
 interface Props {
   children: ReactNode;
@@ -50,7 +51,7 @@ export class ErrorBoundary extends Component<Props, State> {
               marginBottom: '12px',
             }}
           >
-            ⚠️ Something went wrong
+            <Icon name="alert-triangle" size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} /> Something went wrong
           </p>
           <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '20px' }}>
             {this.state.error?.message ?? 'An unexpected error occurred.'}

@@ -65,6 +65,9 @@
   background: transparent;
   transition: all 0.2s;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .navTab:hover:not(.active) { color: var(--text); background: var(--surface2); }
@@ -94,6 +97,9 @@
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .editConfigBtn:hover {
@@ -113,6 +119,9 @@
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .resetBtn:hover {

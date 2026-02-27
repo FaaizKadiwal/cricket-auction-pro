@@ -28,6 +28,7 @@
   background: var(--surface2); color: var(--text);
   font-family: var(--font-body); font-size: 14px; font-weight: 600;
   cursor: pointer; transition: all 0.2s;
+  display: inline-flex; align-items: center; gap: 6px;
 }
 .subNavBtn:hover { border-color: var(--accent); color: var(--accent); }
 .subNavBtnActive { background: var(--accent); color: #000; border-color: var(--accent); }

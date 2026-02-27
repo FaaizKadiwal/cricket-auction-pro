@@ -5,6 +5,7 @@ import { getActiveIncrement } from '@/constants/auction';
 import { getBidCap, getSquad, getCatCount } from '@/utils/auction';
 import { formatPts } from '@/utils/format';
 import { Avatar } from '@/components/Avatar/Avatar';
+import { Icon } from '@/components/Icon/Icon';
 import { useTournament } from '@/context/TournamentContext';
 import styles from './BidTeamPanel.module.css';
 
@@ -56,7 +57,7 @@ export const BidTeamPanel = memo(function BidTeamPanel({
       <div className={styles.header}>
         <Avatar src={team.logoBase64} name={team.name} size={28} color={team.color} square />
         <div className={styles.nameBlock}>
-          {isLeading && <div className={styles.leadTag} style={{ color: team.color }}>🏆 Leading</div>}
+          {isLeading && <div className={styles.leadTag} style={{ color: team.color }}><Icon name="trophy" size={10} /> Leading</div>}
           <div className={styles.teamName} style={{ color: team.color }}>
             {team.name || `Team ${team.id}`}
           </div>
@@ -69,7 +70,7 @@ export const BidTeamPanel = memo(function BidTeamPanel({
           <span style={{ color: 'var(--danger)', fontWeight: 700 }}>{blockReason}</span>
         ) : (
           <>
-            <span style={{ color: 'var(--muted)' }}>🔒 </span>
+            <Icon name="lock" size={10} style={{ color: 'var(--muted)', marginRight: 2 }} />
             <span className={`${styles.capValue} ${capClass()}`}>{formatPts(cap)}</span>
             <span style={{ color: 'var(--muted)', fontSize: 9 }}> pts · {slotsLeft}sl</span>
           </>

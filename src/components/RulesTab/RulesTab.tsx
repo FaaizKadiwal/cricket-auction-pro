@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTournament } from '@/context/TournamentContext';
 import { formatPts } from '@/utils/format';
 import { downloadRulesPdf } from '@/utils/pdf';
+import { Icon, type IconName } from '@/components/Icon/Icon';
 import styles from './RulesTab.module.css';
 
 interface RuleItem {
@@ -11,6 +12,7 @@ interface RuleItem {
 
 interface RuleSection {
   title: string;
+  icon: IconName;
   hl?: boolean;
   items: RuleItem[];
 }
@@ -46,7 +48,8 @@ export function RulesTab() {
 
   const sections: RuleSection[] = [
     {
-      title: '🏟️ Tournament Overview',
+      title: 'Tournament Overview',
+      icon: 'building' as IconName,
       items: [
         { text: `${config.totalTeams} teams participate. Each team is managed by a Captain who bids on behalf of their side.` },
         { text: `Each team must consist of exactly ${config.playersPerTeam} players — 1 Captain (pre-assigned) + ${squadSize} auction picks.` },
@@ -55,7 +58,8 @@ export function RulesTab() {
       ],
     },
     {
-      title: '💰 Points Budget',
+      title: 'Points Budget',
+      icon: 'coins' as IconName,
       items: [
         { text: `Each team receives a fixed budget of ${formatPts(config.budget)} Points to spend across all ${squadSize} auction picks.` },
         { text: 'Unused points do not carry over. Budget is strictly per-team and non-transferable.' },
@@ -63,7 +67,8 @@ export function RulesTab() {
       ],
     },
     {
-      title: '📂 Category Composition',
+      title: 'Category Composition',
+      icon: 'layers' as IconName,
       items: [
         { text: `Players are categorised individually as they are added to the pool — ${config.categories.map((c) => c.name).join(', ')}.` },
         ...catLimitLines.map((t) => ({ text: t })),
@@ -71,7 +76,8 @@ export function RulesTab() {
       ],
     },
     {
-      title: '🔨 Bidding Procedure',
+      title: 'Bidding Procedure',
+      icon: 'gavel' as IconName,
       items: [
         { text: 'The Auctioneer announces the player and their base price. Bidding opens immediately at that price.' },
         { text: 'A captain may pick a player at the base price by pressing "=" (match base). Once any team matches, the "=" option is locked.' },
@@ -85,7 +91,8 @@ export function RulesTab() {
       ],
     },
     {
-      title: '🔒 Bidding Cap Rule',
+      title: 'Bidding Cap Rule',
+      icon: 'lock' as IconName,
       hl: true,
       items: [
         {
@@ -103,7 +110,7 @@ export function RulesTab() {
           hl: true,
         },
         {
-          text: 'ENFORCEMENT: The system automatically blocks any bid exceeding the cap. Bid-increment buttons are disabled in real time. No manual override is permitted.',
+          text: 'ENFORCEMENT: The system automatically blocks any bid exceeding the cap in real time.',
           hl: true,
         },
         { text: 'LAST PICK EXCEPTION: A captain on their final pick may spend their entire remaining budget — no reserve is required.' },
@@ -111,7 +118,8 @@ export function RulesTab() {
       ],
     },
     {
-      title: '⚖️ Bid Validity',
+      title: 'Bid Validity',
+      icon: 'scale' as IconName,
       items: [
         { text: `A bid is invalid if the team's squad is already full (${squadSize} auction picks reached).` },
         { text: 'A bid is invalid if the team has reached the maximum category quota for that player tier.' },
@@ -119,16 +127,17 @@ export function RulesTab() {
       ],
     },
     {
-      title: '🏆 Auction Order & Format',
+      title: 'Auction Order & Format',
+      icon: 'trophy' as IconName,
       items: [
         { text: 'The auctioneer may sequence players in any order, or run category-by-category rounds.' },
-        { text: 'Use the category filter buttons on the Auction page to quickly view players by tier.' },
-        { text: "A random draw determines the 'Right of First Nomination' within each category." },
+        { text: "The auctioneer determines the 'Right of First Nomination' within each category." },
         { text: 'After all players are processed, unsold players may re-enter a Flash Round at a reduced price.' },
       ],
     },
     {
-      title: '🚨 Dispute Resolution',
+      title: 'Dispute Resolution',
+      icon: 'alert-circle' as IconName,
       items: [
         { text: "The Tournament Referee's ruling on all matters is final and binding." },
         { text: "Disputes must be raised immediately — before the next player's bidding commences." },
@@ -137,11 +146,12 @@ export function RulesTab() {
       ],
     },
     {
-      title: '✅ Squad Lock & Post-Auction',
+      title: 'Squad Lock & Post-Auction',
+      icon: 'shield-check' as IconName,
       items: [
-        { text: `A team's squad is locked once all ${squadSize} picks are made or the full player pool is auctioned.` },
-        { text: 'Teams with fewer picks due to budget exhaustion participate with a shorter bench.' },
-        { text: 'The final squad list must be confirmed by the captain before match day.' },
+        { text: `A team's squad is locked once all ${squadSize} picks are made and the full player pool is auctioned.` },
+        { text: 'Teams must participate with a complete and valid squad.' },
+        { text: 'The list of players in a team cannot be changed after the auction concludes as it will be the final squad list.' },
         { text: 'No trades, swaps, or transfers between teams are permitted after the auction concludes.' },
       ],
     },
@@ -157,7 +167,7 @@ export function RulesTab() {
           disabled={downloading}
           aria-label="Download rules as PDF"
         >
-          {downloading ? 'Generating...' : 'Download PDF'}
+          {downloading ? 'Generating...' : <><Icon name="arrow-down" size={14} /> Download PDF</>}
         </button>
       </div>
 
@@ -172,6 +182,7 @@ export function RulesTab() {
       {sections.map((section, si) => (
         <section key={si} className={styles.section} aria-label={section.title}>
           <h2 className={`${styles.sectionTitle} ${section.hl ? styles.sectionTitleHL : ''}`}>
+            <Icon name={section.icon} size={16} style={{ marginRight: 8, flexShrink: 0 }} />
             {section.title}
           </h2>
           <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>

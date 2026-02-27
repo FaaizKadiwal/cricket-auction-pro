@@ -27,6 +27,9 @@
   cursor: pointer;
   transition: background var(--transition-fast);
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 .downloadBtn:hover:not(:disabled) {
   background: var(--accent-hover);
@@ -53,6 +56,8 @@
   letter-spacing: 1px;
   color: var(--accent);
   margin-bottom: 10px;
+  display: flex;
+  align-items: center;
 }
 
 .sectionTitleHL {

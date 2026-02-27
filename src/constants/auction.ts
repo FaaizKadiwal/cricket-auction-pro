@@ -1,4 +1,5 @@
 import type { Category, CategoryDefinition, TournamentConfig, TabId } from '@/types';
+import type { IconName } from '@/components/Icon/Icon';
 
 // ─── Default Categories ──────────────────────────────────────────────────────
 
@@ -110,9 +111,9 @@ export const STORAGE_KEYS = {
 
 // ─── Navigation Tabs ──────────────────────────────────────────────────────────
 
-export const TABS: { id: TabId; label: string }[] = [
-  { id: 'setup',   label: '⚙️ Setup'   },
-  { id: 'auction', label: '🔨 Auction' },
-  { id: 'squads',  label: '👥 Squads'  },
-  { id: 'rules',   label: '📋 Rules'   },
+export const TABS: { id: TabId; label: string; icon: IconName }[] = [
+  { id: 'setup',   label: 'Setup',   icon: 'settings' },
+  { id: 'auction', label: 'Auction', icon: 'gavel'    },
+  { id: 'squads',  label: 'Squads',  icon: 'users'    },
+  { id: 'rules',   label: 'Rules',   icon: 'list'     },
 ];

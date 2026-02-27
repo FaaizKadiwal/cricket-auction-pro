@@ -2,6 +2,7 @@ import type { TabId, SoldPlayer } from '@/types';
 import { TABS } from '@/constants/auction';
 import { formatPts } from '@/utils/format';
 import { useTournament } from '@/context/TournamentContext';
+import { Icon } from '@/components/Icon/Icon';
 import styles from './Header.module.css';
 
 interface HeaderProps {
@@ -23,7 +24,7 @@ export function Header({ activeTab, onTabChange, soldPlayers, onReset, onEditCon
         {config.logoBase64 ? (
           <img src={config.logoBase64} alt="Tournament logo" className={styles.logoImg} />
         ) : (
-          <span className={styles.logoIcon} aria-hidden="true">🏏</span>
+          <span className={styles.logoIcon} aria-hidden="true"><Icon name="trophy" size={24} /></span>
         )}
         <div>
           <div className={styles.logoText}>{config.tournamentName || 'Cricket Auction'}</div>
@@ -39,6 +40,7 @@ export function Header({ activeTab, onTabChange, soldPlayers, onReset, onEditCon
             onClick={() => onTabChange(tab.id)}
             aria-current={activeTab === tab.id ? 'page' : undefined}
           >
+            <Icon name={tab.icon} size={14} />
             {tab.label}
           </button>
         ))}
@@ -60,10 +62,10 @@ export function Header({ activeTab, onTabChange, soldPlayers, onReset, onEditCon
         </div>
         <div className={styles.divider} aria-hidden="true" />
         <button className={styles.editConfigBtn} onClick={onEditConfig} aria-label="Edit tournament settings">
-          ✏️ Edit Config
+          <Icon name="pencil" size={13} /> Edit Config
         </button>
         <button className={styles.resetBtn} onClick={onReset} aria-label="Reset tournament configuration">
-          🔄 Reconfigure
+          <Icon name="refresh" size={13} /> Reconfigure
         </button>
       </div>
     </header>

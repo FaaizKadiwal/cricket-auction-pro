@@ -1,4 +1,4 @@
-import { useRef, useState, useId } from 'react';
+import { useRef, useState, useId, type ReactNode } from 'react';
 import { MAX_IMAGE_SIZE } from '@/constants/auction';
 import { resizeImage } from '@/utils/image';
 import styles from './ImageUpload.module.css';
@@ -10,11 +10,11 @@ interface ImageUploadProps {
   size?: number;       // px width/height of the zone
   circle?: boolean;
   maxDim?: number;     // resize target dimension
-  placeholder?: string;
+  placeholder?: ReactNode;
 }
 
 export function ImageUpload({
-  value, onChange, label, size = 80, circle = false, maxDim = 300, placeholder = '📷',
+  value, onChange, label, size = 80, circle = false, maxDim = 300, placeholder = null,
 }: ImageUploadProps) {
   const inputRef  = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
