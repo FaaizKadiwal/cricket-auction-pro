@@ -68,12 +68,45 @@
 
 .playerName {
   font-family: var(--font-display);
-  font-size: 56px;
+  font-size: 30px;
   letter-spacing: 3px;
   margin: 0;
   color: var(--text);
   text-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
   text-align: center;
+}
+
+.playerDescWrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 auto 6px;
+  max-width: 420px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-left: 4px solid var(--desc-color, var(--accent));
+  border-radius: 8px;
+  box-shadow: 0 0 24px rgba(0, 0, 0, 0.3);
+}
+
+.playerDescQuote {
+  font-size: 25px;
+  line-height: 1;
+  color: var(--desc-color, var(--accent));
+  opacity: 0.85;
+  flex-shrink: 0;
+  font-family: Georgia, serif;
+  margin-top: -4px;
+}
+
+.playerDescText {
+  font-size: 17px;
+  font-style: italic;
+  color: var(--text);
+  line-height: 1.55;
+  text-align: left;
+  opacity: 0.9;
 }
 
 .basePrice {

@@ -39,6 +39,7 @@ export interface Team {
 export interface Player {
   id: number;
   name: string;
+  description: string;        // short bio shown on auction stage
   category: Category;
   basePrice: number;
   status: PlayerStatus;

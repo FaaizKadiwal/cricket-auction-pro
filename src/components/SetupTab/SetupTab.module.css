@@ -102,6 +102,21 @@
 .formInputError { border-color: var(--danger) !important; }
 .formSelect { cursor: pointer; }
 .formSelect option { background: var(--surface2); }
+.formLabelOptional { color: var(--muted); font-weight: 400; text-transform: none; letter-spacing: 0; }
+.formTextarea {
+  padding: 9px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 13px;
+  transition: border-color 0.2s;
+  width: 100%;
+  resize: vertical;
+  min-height: 58px;
+}
+.formTextarea:focus { outline: none; border-color: var(--accent); }
 .formError { font-size: 10px; color: var(--danger); }
 .formHint  { font-size: 10px; color: var(--muted); }
 

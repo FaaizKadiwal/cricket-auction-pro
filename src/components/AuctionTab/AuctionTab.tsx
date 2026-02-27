@@ -280,14 +280,21 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
                       >
                         ◆ {currentPlayer.category.toUpperCase()} CATEGORY ◆
                       </div>
+
+                      <h2 className={styles.playerName}>{currentPlayer.name}</h2>
+                      {currentPlayer.description && (
+                        <div className={styles.playerDescWrap} style={{ '--desc-color': catStyle.color } as React.CSSProperties}>
+                          <span className={styles.playerDescQuote}>"</span>
+                          <span className={styles.playerDescText}>{currentPlayer.description}</span>
+                          <span className={styles.playerDescQuote}>"</span>
+                        </div>
+                      )}
+                      <p className={styles.playerBase}>
+                        Base Price: <span className={styles.playerBasePts}>{formatPts(currentPlayer.basePrice)} pts</span>
+                      </p>
                     </>
                   );
                 })()}
-
-                <h2 className={styles.playerName}>{currentPlayer.name}</h2>
-                <p className={styles.playerBase}>
-                  Base Price: <span style={{ fontFamily: 'var(--font-mono)' }}>{formatPts(currentPlayer.basePrice)} pts</span>
-                </p>
 
                 {/* Current bid */}
                 <div className={styles.bidDisplay}>

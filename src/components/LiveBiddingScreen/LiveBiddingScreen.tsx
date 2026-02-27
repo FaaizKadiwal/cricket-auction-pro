@@ -114,6 +114,13 @@ export function LiveBiddingScreen({ bidding, teams, soldPlayers, config }: LiveB
 
           {/* Player name */}
           <h2 className={styles.playerName}>{player.name}</h2>
+          {player.description && (
+            <div className={styles.playerDescWrap} style={{ '--desc-color': catStyle.color } as React.CSSProperties}>
+              <span className={styles.playerDescQuote}>"</span>
+              <span className={styles.playerDescText}>{player.description}</span>
+              <span className={styles.playerDescQuote}>"</span>
+            </div>
+          )}
           <p className={styles.basePrice}>Base Price: <span>{formatPts(player.basePrice)} pts</span></p>
         </div>
 

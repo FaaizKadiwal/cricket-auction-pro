@@ -107,13 +107,15 @@ interface PlayerFormProps {
 function PlayerForm({ editingPlayer, onAdd, onUpdate, onCancelEdit }: PlayerFormProps) {
   const { config } = useTournament();
   const catNames = getCategoryNames(config);
-  const [name,      setName]      = useState('');
-  const [category,  setCategory]  = useState<Category>(catNames[0] ?? '');
-  const [basePrice, setBasePrice] = useState('');
-  const [photo,     setPhoto]     = useState<string | null>(null);
-  const [errors,    setErrors]    = useState<ValidationError[]>([]);
+  const [name,        setName]        = useState('');
+  const [description, setDescription] = useState('');
+  const [category,    setCategory]    = useState<Category>(catNames[0] ?? '');
+  const [basePrice,   setBasePrice]   = useState('');
+  const [photo,       setPhoto]       = useState<string | null>(null);
+  const [errors,      setErrors]      = useState<ValidationError[]>([]);
 
   const nameId  = useId();
+  const descId  = useId();
   const catId   = useId();
   const priceId = useId();
 
@@ -123,12 +125,14 @@ function PlayerForm({ editingPlayer, onAdd, onUpdate, onCancelEdit }: PlayerForm
   useEffect(() => {
     if (editingPlayer) {
       setName(editingPlayer.name);
+      setDescription(editingPlayer.description ?? '');
       setCategory(editingPlayer.category);
       setBasePrice(String(editingPlayer.basePrice));
       setPhoto(editingPlayer.photoBase64);
       setErrors([]);
     } else {
       setName('');
+      setDescription('');
       setCategory(catNames[0] ?? '');
       setBasePrice('');
       setPhoto(null);
@@ -144,14 +148,14 @@ function PlayerForm({ editingPlayer, onAdd, onUpdate, onCancelEdit }: PlayerForm
     const errs  = validatePlayerForm(name, price);
     if (errs.length) { setErrors(errs); return; }
 
-    const data = { name: name.trim(), category, basePrice: price, photoBase64: photo };
+    const data = { name: name.trim(), description: description.trim(), category, basePrice: price, photoBase64: photo };
 
     if (isEditing) {
       onUpdate(editingPlayer.id, data);
       onCancelEdit();
     } else {
       onAdd(data);
-      setName(''); setBasePrice(''); setPhoto(null); setErrors([]);
+      setName(''); setDescription(''); setBasePrice(''); setPhoto(null); setErrors([]);
     }
   }
 
@@ -185,6 +189,19 @@ function PlayerForm({ editingPlayer, onAdd, onUpdate, onCancelEdit }: PlayerForm
           aria-invalid={!!getErr('name')}
         />
         {getErr('name') && <p className={styles.formError} role="alert">{getErr('name')}</p>}
+      </div>
+
+      <div className={styles.formGroup} style={{ marginBottom: 10 }}>
+        <label className={styles.formLabel} htmlFor={descId}>Description <span className={styles.formLabelOptional}>(optional)</span></label>
+        <textarea
+          id={descId}
+          className={styles.formTextarea}
+          value={description}
+          maxLength={200}
+          rows={2}
+          placeholder="e.g. Explosive opener, 3× tournament MVP"
+          onChange={(e) => setDescription(e.target.value)}
+        />
       </div>
 
       <div className={styles.formGroup} style={{ marginBottom: 10 }}>

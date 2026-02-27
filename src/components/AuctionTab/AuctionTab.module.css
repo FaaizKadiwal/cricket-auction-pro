@@ -53,7 +53,39 @@
   font-size: 50px; letter-spacing: 2px; line-height: 1; margin-bottom: 6px;
 }
 
+.playerDescWrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 8px auto 14px;
+  max-width: 340px;
+  padding: 10px 16px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-left: 3px solid var(--desc-color, var(--accent));
+  border-radius: 6px;
+}
+
+.playerDescQuote {
+  font-size: 26px;
+  line-height: 1;
+  color: var(--desc-color, var(--accent));
+  opacity: 0.9;
+  flex-shrink: 0;
+  font-family: Georgia, serif;
+  margin-top: -2px;
+}
+
+.playerDescText {
+  font-size: 14px;
+  font-style: italic;
+  color: var(--text);
+  line-height: 1.55;
+  text-align: left;
+}
+
 .playerBase { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+.playerBasePts { font-family: var(--font-mono); }
 
 /* Bid display */
 .bidDisplay {
