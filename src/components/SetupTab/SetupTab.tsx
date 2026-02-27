@@ -1,4 +1,4 @@
-import { useState, useCallback, useId, useMemo } from 'react';
+import { useState, useCallback, useId, useMemo, useEffect } from 'react';
 import type { Team, Player, Category, ValidationError } from '@/types';
 import { getCategoryStyle, getCategoryNames } from '@/constants/auction';
 import { validatePlayerForm } from '@/utils/auction';
@@ -94,13 +94,16 @@ function TeamCard({ team, index, onChange }: TeamCardProps) {
   );
 }
 
-// ─── Add Player Form ──────────────────────────────────────────────────────────
+// ─── Player Form (Add + Edit) ─────────────────────────────────────────────────
 
-interface AddPlayerFormProps {
+interface PlayerFormProps {
+  editingPlayer: Player | null;
   onAdd: (p: Omit<Player, 'id' | 'status'>) => void;
+  onUpdate: (id: number, data: Omit<Player, 'id' | 'status'>) => void;
+  onCancelEdit: () => void;
 }
 
-function AddPlayerForm({ onAdd }: AddPlayerFormProps) {
+function PlayerForm({ editingPlayer, onAdd, onUpdate, onCancelEdit }: PlayerFormProps) {
   const { config } = useTournament();
   const catNames = getCategoryNames(config);
   const [name,      setName]      = useState('');
@@ -109,9 +112,29 @@ function AddPlayerForm({ onAdd }: AddPlayerFormProps) {
   const [photo,     setPhoto]     = useState<string | null>(null);
   const [errors,    setErrors]    = useState<ValidationError[]>([]);
 
-  const nameId     = useId();
-  const catId      = useId();
-  const priceId    = useId();
+  const nameId  = useId();
+  const catId   = useId();
+  const priceId = useId();
+
+  const isEditing = editingPlayer !== null;
+
+  // Pre-fill form when entering edit mode, clear when exiting
+  useEffect(() => {
+    if (editingPlayer) {
+      setName(editingPlayer.name);
+      setCategory(editingPlayer.category);
+      setBasePrice(String(editingPlayer.basePrice));
+      setPhoto(editingPlayer.photoBase64);
+      setErrors([]);
+    } else {
+      setName('');
+      setCategory(catNames[0] ?? '');
+      setBasePrice('');
+      setPhoto(null);
+      setErrors([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingPlayer?.id]);
 
   const getErr = (f: string) => errors.find((e) => e.field === f)?.message;
 
@@ -119,13 +142,21 @@ function AddPlayerForm({ onAdd }: AddPlayerFormProps) {
     const price = Number(basePrice);
     const errs  = validatePlayerForm(name, price);
     if (errs.length) { setErrors(errs); return; }
-    onAdd({ name: name.trim(), category, basePrice: price, photoBase64: photo });
-    setName(''); setBasePrice(''); setPhoto(null); setErrors([]);
+
+    const data = { name: name.trim(), category, basePrice: price, photoBase64: photo };
+
+    if (isEditing) {
+      onUpdate(editingPlayer.id, data);
+      onCancelEdit();
+    } else {
+      onAdd(data);
+      setName(''); setBasePrice(''); setPhoto(null); setErrors([]);
+    }
   }
 
   return (
     <div className={styles.card}>
-      <div className={styles.cardTitle}>Add Player</div>
+      <div className={styles.cardTitle}>{isEditing ? 'Edit Player' : 'Add Player'}</div>
 
       {/* Player photo centered */}
       <div className={styles.playerImgRow}>
@@ -184,7 +215,14 @@ function AddPlayerForm({ onAdd }: AddPlayerFormProps) {
         {getErr('basePrice') && <p className={styles.formError} role="alert">{getErr('basePrice')}</p>}
       </div>
 
-      <button className={styles.addBtn} onClick={handleSubmit}>+ Add Player</button>
+      <button className={styles.addBtn} onClick={handleSubmit}>
+        {isEditing ? '💾 Save Changes' : '+ Add Player'}
+      </button>
+      {isEditing && (
+        <button className={styles.cancelBtn} onClick={onCancelEdit}>
+          Cancel
+        </button>
+      )}
     </div>
   );
 }
@@ -193,10 +231,12 @@ function AddPlayerForm({ onAdd }: AddPlayerFormProps) {
 
 interface PlayerTableProps {
   players: Player[];
+  editingPlayerId: number | null;
   onRemove: (id: number) => void;
+  onEdit: (player: Player) => void;
 }
 
-function PlayerTable({ players, onRemove }: PlayerTableProps) {
+function PlayerTable({ players, editingPlayerId, onRemove, onEdit }: PlayerTableProps) {
   const { config } = useTournament();
 
   if (players.length === 0) {
@@ -221,8 +261,9 @@ function PlayerTable({ players, onRemove }: PlayerTableProps) {
       <tbody>
         {players.map((p) => {
           const { color } = getCategoryStyle(config, p.category);
+          const isBeingEdited = p.id === editingPlayerId;
           return (
-            <tr key={p.id}>
+            <tr key={p.id} className={isBeingEdited ? styles.rowEditing : undefined}>
               <td>
                 <div className={styles.playerInfoCell}>
                   <Avatar
@@ -249,11 +290,21 @@ function PlayerTable({ players, onRemove }: PlayerTableProps) {
                 {formatPts(p.basePrice)}
               </td>
               <td>
-                <button
-                  className={styles.removeBtn}
-                  onClick={() => onRemove(p.id)}
-                  aria-label={`Remove ${p.name}`}
-                >✕</button>
+                <div className={styles.actionCell}>
+                  {p.status === 'pending' && (
+                    <button
+                      className={`${styles.editBtn} ${isBeingEdited ? styles.editBtnActive : ''}`}
+                      onClick={() => isBeingEdited ? undefined : onEdit(p)}
+                      aria-label={`Edit ${p.name}`}
+                      aria-pressed={isBeingEdited}
+                    >✏️</button>
+                  )}
+                  <button
+                    className={styles.removeBtn}
+                    onClick={() => onRemove(p.id)}
+                    aria-label={`Remove ${p.name}`}
+                  >✕</button>
+                </div>
               </td>
             </tr>
           );
@@ -275,8 +326,14 @@ interface SetupTabProps {
 type View = 'teams' | 'players';
 
 export function SetupTab({ teams, onTeamsChange, players, onPlayersChange }: SetupTabProps) {
-  const { config } = useTournament();
+  const { config, squadSize } = useTournament();
   const [view, setView] = useState<View>('teams');
+  const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
+
+  // Clear editing state when switching away from players view
+  useEffect(() => {
+    if (view !== 'players') setEditingPlayer(null);
+  }, [view]);
 
   const handleTeamChange = useCallback(
     (id: number, field: keyof Team, value: string | null) => {
@@ -293,12 +350,28 @@ export function SetupTab({ teams, onTeamsChange, players, onPlayersChange }: Set
     [players, onPlayersChange]
   );
 
-  const handleRemovePlayer = useCallback(
-    (id: number) => onPlayersChange(players.filter((p) => p.id !== id)),
+  const handleUpdatePlayer = useCallback(
+    (id: number, data: Omit<Player, 'id' | 'status'>) => {
+      onPlayersChange(players.map((p) => (p.id === id ? { ...p, ...data } : p)));
+    },
     [players, onPlayersChange]
   );
 
-  const { squadSize } = useTournament();
+  const handleRemovePlayer = useCallback(
+    (id: number) => {
+      if (editingPlayer?.id === id) setEditingPlayer(null);
+      onPlayersChange(players.filter((p) => p.id !== id));
+    },
+    [players, onPlayersChange, editingPlayer]
+  );
+
+  const handleEditPlayer = useCallback((player: Player) => {
+    setEditingPlayer(player);
+  }, []);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingPlayer(null);
+  }, []);
 
   // Dynamic category counts
   const catCounts = useMemo(() => {
@@ -372,10 +445,20 @@ export function SetupTab({ teams, onTeamsChange, players, onPlayersChange }: Set
 
       {view === 'players' && (
         <section aria-label="Player pool" className={styles.playerPanel}>
-          <AddPlayerForm onAdd={handleAddPlayer} />
+          <PlayerForm
+            editingPlayer={editingPlayer}
+            onAdd={handleAddPlayer}
+            onUpdate={handleUpdatePlayer}
+            onCancelEdit={handleCancelEdit}
+          />
           <div className={`${styles.card} ${styles.cardScrollable}`}>
             <div className={styles.cardTitle}>Player Pool ({players.length})</div>
-            <PlayerTable players={players} onRemove={handleRemovePlayer} />
+            <PlayerTable
+              players={players}
+              editingPlayerId={editingPlayer?.id ?? null}
+              onRemove={handleRemovePlayer}
+              onEdit={handleEditPlayer}
+            />
           </div>
         </section>
       )}

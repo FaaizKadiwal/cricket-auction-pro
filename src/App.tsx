@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { TabId, Team, Player, SoldPlayer, TournamentConfig, DemotionResult } from '@/types';
 import { DEFAULT_TEAM_COLORS, STORAGE_KEYS } from '@/constants/auction';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
@@ -55,9 +55,28 @@ export default function App() {
   const [soldPlayers, setSoldPlayers] = useLocalStorage<SoldPlayer[]>(STORAGE_KEYS.SOLD_PLAYERS, []);
 
   const { toasts, showToast, dismissToast } = useToast(5000);
+  const [showConfigEditor, setShowConfigEditor] = useState(false);
 
   // Live viewer broadcast (only responds to sync when config exists)
   const broadcast = useBroadcast({ config, teams, players, soldPlayers });
+
+  // Keep SoldPlayer.teamName / teamColor in sync when teams are edited
+  useEffect(() => {
+    if (soldPlayers.length === 0 || teams.length === 0) return;
+    const needsSync = soldPlayers.some((sp) => {
+      const team = teams.find((t) => t.id === sp.teamId);
+      return team && (team.name !== sp.teamName || team.color !== sp.teamColor);
+    });
+    if (!needsSync) return;
+    setSoldPlayers((prev) =>
+      prev.map((sp) => {
+        const team = teams.find((t) => t.id === sp.teamId);
+        return team && (team.name !== sp.teamName || team.color !== sp.teamColor)
+          ? { ...sp, teamName: team.name, teamColor: team.color }
+          : sp;
+      })
+    );
+  }, [teams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Config Wizard ──────────────────────────────────────────────────────────
 
@@ -83,6 +102,46 @@ export default function App() {
     setSoldPlayers([]);
     setActiveTab('setup');
   }, [setConfig, setTeams, setPlayers, setSoldPlayers, setActiveTab]);
+
+  const handleConfigSave = useCallback(
+    (newConfig: TournamentConfig) => {
+      if (!config) return;
+
+      // Propagate category name renames to players (match by index)
+      const oldCats = config.categories;
+      const newCats = newConfig.categories;
+      let updatedPlayers = players;
+      let updatedSoldPlayers = soldPlayers;
+
+      oldCats.forEach((oldCat, i) => {
+        const newCat = newCats[i];
+        if (newCat && oldCat.name !== newCat.name) {
+          updatedPlayers = updatedPlayers.map((p) =>
+            p.category === oldCat.name ? { ...p, category: newCat.name } : p
+          );
+          updatedSoldPlayers = updatedSoldPlayers.map((sp) =>
+            sp.category === oldCat.name ? { ...sp, category: newCat.name } : sp
+          );
+        }
+      });
+
+      // Adjust teams array if totalTeams changed
+      let updatedTeams = teams;
+      if (newConfig.totalTeams > config.totalTeams) {
+        const extras = buildTeams(newConfig.totalTeams).slice(config.totalTeams);
+        updatedTeams = [...updatedTeams, ...extras];
+      } else if (newConfig.totalTeams < config.totalTeams) {
+        updatedTeams = updatedTeams.slice(0, newConfig.totalTeams);
+      }
+
+      setConfig(newConfig);
+      setTeams(updatedTeams);
+      setPlayers(updatedPlayers);
+      setSoldPlayers(updatedSoldPlayers);
+      setShowConfigEditor(false);
+    },
+    [config, players, soldPlayers, teams, setConfig, setTeams, setPlayers, setSoldPlayers]
+  );
 
   // ── Data Handlers ──────────────────────────────────────────────────────────
 
@@ -189,6 +248,7 @@ export default function App() {
           onTabChange={setActiveTab}
           soldPlayers={soldPlayers}
           onReset={handleReset}
+          onEditConfig={() => setShowConfigEditor(true)}
         />
 
         <main style={mainStyle} id="main-content">
@@ -233,6 +293,18 @@ export default function App() {
 
         <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       </div>
+
+      {showConfigEditor && (
+        <ConfigScreen
+          mode="edit"
+          initialConfig={config}
+          onLaunch={handleLaunch}
+          onSave={handleConfigSave}
+          onCancel={() => setShowConfigEditor(false)}
+          hasSoldPlayers={soldPlayers.length > 0}
+          existingPlayers={players}
+        />
+      )}
     </TournamentProvider>
   );
 }

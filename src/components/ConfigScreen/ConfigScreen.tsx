@@ -1,5 +1,5 @@
 import { useState, Fragment } from 'react';
-import type { TournamentConfig, CategoryDefinition, ValidationError } from '@/types';
+import type { TournamentConfig, CategoryDefinition, ValidationError, Player } from '@/types';
 import { DEFAULT_CONFIG } from '@/constants/auction';
 import { validateConfig } from '@/utils/auction';
 import { formatPts } from '@/utils/format';
@@ -9,7 +9,13 @@ import styles from './ConfigScreen.module.css';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ConfigScreenProps {
+  mode?: 'create' | 'edit';
+  initialConfig?: TournamentConfig;
   onLaunch: (config: TournamentConfig) => void;
+  onSave?: (config: TournamentConfig) => void;
+  onCancel?: () => void;
+  hasSoldPlayers?: boolean;
+  existingPlayers?: Player[];
 }
 
 type Step = 1 | 2 | 3;
@@ -32,9 +38,10 @@ interface Step1Props {
   draft: TournamentConfig;
   onChange: (partial: Partial<TournamentConfig>) => void;
   errors: ValidationError[];
+  lockStructural: boolean;
 }
 
-function Step1({ draft, onChange, errors }: Step1Props) {
+function Step1({ draft, onChange, errors, lockStructural }: Step1Props) {
   const squadSize = draft.playersPerTeam - 1;
 
   return (
@@ -75,11 +82,14 @@ function Step1({ draft, onChange, errors }: Step1Props) {
             className={`${styles.input} ${getErr(errors, 'totalTeams') ? styles.inputError : ''}`}
             type="number" min={2} max={20}
             value={draft.totalTeams}
+            disabled={lockStructural}
             onChange={(e) => onChange({ totalTeams: Number(e.target.value) })}
           />
           {getErr(errors, 'totalTeams')
             ? <span className={styles.fieldError}>{getErr(errors, 'totalTeams')}</span>
-            : <span className={styles.hint}>Min 2 · Max 20 teams</span>
+            : lockStructural
+              ? <span className={styles.hintLocked}>Locked — players have been sold</span>
+              : <span className={styles.hint}>Min 2 · Max 20 teams</span>
           }
         </div>
 
@@ -89,13 +99,16 @@ function Step1({ draft, onChange, errors }: Step1Props) {
             className={`${styles.input} ${getErr(errors, 'playersPerTeam') ? styles.inputError : ''}`}
             type="number" min={3} max={15}
             value={draft.playersPerTeam}
+            disabled={lockStructural}
             onChange={(e) => onChange({ playersPerTeam: Number(e.target.value) })}
           />
           {getErr(errors, 'playersPerTeam')
             ? <span className={styles.fieldError}>{getErr(errors, 'playersPerTeam')}</span>
-            : <span className={styles.hint}>
-                1 captain + {squadSize} auction pick{squadSize !== 1 ? 's' : ''}
-              </span>
+            : lockStructural
+              ? <span className={styles.hintLocked}>Locked — players have been sold</span>
+              : <span className={styles.hint}>
+                  1 captain + {squadSize} auction pick{squadSize !== 1 ? 's' : ''}
+                </span>
           }
         </div>
 
@@ -151,9 +164,11 @@ interface Step2Props {
   draft: TournamentConfig;
   onChange: (partial: Partial<TournamentConfig>) => void;
   errors: ValidationError[];
+  setErrors: (errors: ValidationError[]) => void;
+  existingPlayers?: Player[];
 }
 
-function Step2({ draft, onChange, errors }: Step2Props) {
+function Step2({ draft, onChange, errors, setErrors, existingPlayers }: Step2Props) {
   const squadSize = draft.playersPerTeam - 1;
   const cats = draft.categories;
 
@@ -173,6 +188,14 @@ function Step2({ draft, onChange, errors }: Step2Props) {
   }
 
   function removeCategory(index: number) {
+    const catName = cats[index].name;
+    if (existingPlayers && catName) {
+      const count = existingPlayers.filter((p) => p.category === catName).length;
+      if (count > 0) {
+        setErrors([{ field: `cat_name_${index}`, message: `Cannot remove — ${count} player${count !== 1 ? 's' : ''} assigned to this category.` }]);
+        return;
+      }
+    }
     onChange({ categories: cats.filter((_, i) => i !== index) });
   }
 
@@ -301,9 +324,12 @@ function Step2({ draft, onChange, errors }: Step2Props) {
 
 // ─── Step 3: Confirm ─────────────────────────────────────────────────────────
 
-interface Step3Props { draft: TournamentConfig; }
+interface Step3Props {
+  draft: TournamentConfig;
+  mode: 'create' | 'edit';
+}
 
-function Step3({ draft }: Step3Props) {
+function Step3({ draft, mode }: Step3Props) {
   const squadSize  = draft.playersPerTeam - 1;
   const totalSlots = draft.totalTeams * squadSize;
   const totalPot   = draft.totalTeams * draft.budget;
@@ -321,10 +347,12 @@ function Step3({ draft }: Step3Props) {
 
   return (
     <div>
-      <h2 className={styles.stepTitle}>Confirm & Launch</h2>
+      <h2 className={styles.stepTitle}>{mode === 'edit' ? 'Review Changes' : 'Confirm & Launch'}</h2>
       <p className={styles.stepDesc}>
-        Review your tournament settings below. Once launched you will move to the Setup page
-        to enter team details and add players.
+        {mode === 'edit'
+          ? 'Review your updated settings below. Click "Save Changes" to apply without resetting teams or players.'
+          : 'Review your tournament settings below. Once launched you will move to the Setup page to enter team details and add players.'
+        }
       </p>
 
       <div className={styles.summaryGrid}>
@@ -354,8 +382,10 @@ function Step3({ draft }: Step3Props) {
       </div>
 
       <div className={styles.confirmNote}>
-        After launching, you can add teams, upload logos and photos, add players with their
-        base prices, then start the live auction. All data is auto-saved — a refresh won't lose progress.
+        {mode === 'edit'
+          ? 'Your teams, players, and auction history will be preserved. Category renames will propagate to existing players.'
+          : 'After launching, you can add teams, upload logos and photos, add players with their base prices, then start the live auction. All data is auto-saved — a refresh won\'t lose progress.'
+        }
       </div>
     </div>
   );
@@ -363,10 +393,22 @@ function Step3({ draft }: Step3Props) {
 
 // ─── ConfigScreen ─────────────────────────────────────────────────────────────
 
-export function ConfigScreen({ onLaunch }: ConfigScreenProps) {
+export function ConfigScreen({
+  mode = 'create',
+  initialConfig,
+  onLaunch,
+  onSave,
+  onCancel,
+  hasSoldPlayers = false,
+  existingPlayers,
+}: ConfigScreenProps) {
   const [step, setStep]   = useState<Step>(1);
-  const [draft, setDraft] = useState<TournamentConfig>({ ...DEFAULT_CONFIG });
+  const [draft, setDraft] = useState<TournamentConfig>(
+    initialConfig ? { ...initialConfig } : { ...DEFAULT_CONFIG }
+  );
   const [errors, setErrors] = useState<ValidationError[]>([]);
+
+  const isEdit = mode === 'edit';
 
   function updateDraft(partial: Partial<TournamentConfig>) {
     setDraft((d) => ({ ...d, ...partial }));
@@ -407,17 +449,28 @@ export function ConfigScreen({ onLaunch }: ConfigScreenProps) {
     setErrors([]);
   }
 
+  function handleFinish() {
+    if (isEdit) {
+      onSave?.(draft);
+    } else {
+      onLaunch(draft);
+    }
+  }
+
   return (
     <div className={styles.overlay}>
-      <div className={styles.panel} role="dialog" aria-modal="true" aria-label="Tournament configuration">
+      <div className={styles.panel} role="dialog" aria-modal="true" aria-label={isEdit ? 'Edit tournament settings' : 'Tournament configuration'}>
 
         {/* Header */}
         <div className={styles.panelHeader}>
           <span className={styles.logo} aria-hidden="true">🏏</span>
           <div className={styles.titleBlock}>
             <div className={styles.appTitle}>Cricket Auction Pro</div>
-            <div className={styles.appSub}>Tournament Setup Wizard</div>
+            <div className={styles.appSub}>{isEdit ? 'Edit Tournament Settings' : 'Tournament Setup Wizard'}</div>
           </div>
+          {isEdit && onCancel && (
+            <button className={styles.closeBtn} onClick={onCancel} aria-label="Close editor">✕</button>
+          )}
         </div>
 
         {/* Step indicators */}
@@ -441,20 +494,39 @@ export function ConfigScreen({ onLaunch }: ConfigScreenProps) {
 
         {/* Body */}
         <div className={styles.body}>
-          {step === 1 && <Step1 draft={draft} onChange={updateDraft} errors={errors} />}
-          {step === 2 && <Step2 draft={draft} onChange={updateDraft} errors={errors} />}
-          {step === 3 && <Step3 draft={draft} />}
+          {step === 1 && (
+            <Step1
+              draft={draft}
+              onChange={updateDraft}
+              errors={errors}
+              lockStructural={isEdit && hasSoldPlayers}
+            />
+          )}
+          {step === 2 && (
+            <Step2
+              draft={draft}
+              onChange={updateDraft}
+              errors={errors}
+              setErrors={setErrors}
+              existingPlayers={existingPlayers}
+            />
+          )}
+          {step === 3 && <Step3 draft={draft} mode={mode} />}
         </div>
 
         {/* Footer */}
         <div className={styles.footer}>
           {step > 1
             ? <button className={styles.btnBack} onClick={handleBack}>← Back</button>
-            : <div />
+            : isEdit && onCancel
+              ? <button className={styles.btnBack} onClick={onCancel}>Cancel</button>
+              : <div />
           }
           {step < 3
             ? <button className={styles.btnNext} onClick={handleNext}>Next →</button>
-            : <button className={styles.btnLaunch} onClick={() => onLaunch(draft)}>🚀 Launch Tournament</button>
+            : <button className={styles.btnLaunch} onClick={handleFinish}>
+                {isEdit ? '💾 Save Changes' : '🚀 Launch Tournament'}
+              </button>
           }
         </div>
       </div>

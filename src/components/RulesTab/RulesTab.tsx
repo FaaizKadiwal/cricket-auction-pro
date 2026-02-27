@@ -59,7 +59,7 @@ export function RulesTab() {
       items: [
         { text: `Each team receives a fixed budget of ${formatPts(config.budget)} Points to spend across all ${squadSize} auction picks.` },
         { text: 'Unused points do not carry over. Budget is strictly per-team and non-transferable.' },
-        { text: 'If a captain exhausts their budget mid-auction, they are locked out of all subsequent bids.' },
+        { text: `A captain must utilize their budget efficiently such that a ${config.playersPerTeam} player squad is formed.` },
       ],
     },
     {

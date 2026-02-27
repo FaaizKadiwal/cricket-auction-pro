@@ -9,9 +9,10 @@ interface HeaderProps {
   onTabChange: (tab: TabId) => void;
   soldPlayers: SoldPlayer[];
   onReset: () => void;
+  onEditConfig: () => void;
 }
 
-export function Header({ activeTab, onTabChange, soldPlayers, onReset }: HeaderProps) {
+export function Header({ activeTab, onTabChange, soldPlayers, onReset, onEditConfig }: HeaderProps) {
   const { config, squadSize } = useTournament();
   const totalSpent = soldPlayers.reduce((sum, s) => sum + s.finalPrice, 0);
   const totalPlayers = config.totalTeams * squadSize;
@@ -58,6 +59,9 @@ export function Header({ activeTab, onTabChange, soldPlayers, onReset }: HeaderP
           </span>
         </div>
         <div className={styles.divider} aria-hidden="true" />
+        <button className={styles.editConfigBtn} onClick={onEditConfig} aria-label="Edit tournament settings">
+          ✏️ Edit Config
+        </button>
         <button className={styles.resetBtn} onClick={onReset} aria-label="Reset tournament configuration">
           🔄 Reconfigure
         </button>
