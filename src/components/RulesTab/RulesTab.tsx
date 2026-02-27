@@ -80,7 +80,7 @@ export function RulesTab() {
       icon: 'gavel' as IconName,
       items: [
         { text: 'The Auctioneer announces the player and their base price. Bidding opens immediately at that price.' },
-        { text: 'A captain may pick a player at the base price by pressing "=" (match base). Once any team matches, the "=" option is locked.' },
+        { text: 'A captain may pick a player at the base price. This is known as the "base pick".' },
         { text: 'After the base pick, captains raise bids using a single increment that scales with the current bid:' },
         { text: 'Below 400 pts → +20 per bid.', hl: true },
         { text: '400 – 999 pts → +50 per bid.', hl: true },
