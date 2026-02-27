@@ -79,13 +79,17 @@ function Step1({ draft, onChange, errors, lockStructural }: Step1Props) {
 
         <div className={styles.formGroup}>
           <label className={styles.label}>Total Teams</label>
-          <input
-            className={`${styles.input} ${getErr(errors, 'totalTeams') ? styles.inputError : ''}`}
-            type="number" min={2} max={20}
-            value={draft.totalTeams}
-            disabled={lockStructural}
-            onChange={(e) => onChange({ totalTeams: Number(e.target.value) })}
-          />
+          <div className={`${styles.catStepper} ${lockStructural ? styles.catStepperDisabled : ''} ${getErr(errors, 'totalTeams') ? styles.catStepperError : ''}`}>
+            <button type="button" className={styles.catStepBtn}
+              onClick={() => onChange({ totalTeams: Math.max(2, draft.totalTeams - 1) })}
+              aria-label="Decrease teams" disabled={lockStructural || draft.totalTeams <= 2}
+            ><Icon name="minus" size={11} /></button>
+            <span className={styles.catStepVal}>{draft.totalTeams}</span>
+            <button type="button" className={styles.catStepBtn}
+              onClick={() => onChange({ totalTeams: Math.min(20, draft.totalTeams + 1) })}
+              aria-label="Increase teams" disabled={lockStructural || draft.totalTeams >= 20}
+            ><Icon name="plus" size={11} /></button>
+          </div>
           {getErr(errors, 'totalTeams')
             ? <span className={styles.fieldError}>{getErr(errors, 'totalTeams')}</span>
             : lockStructural
@@ -96,13 +100,17 @@ function Step1({ draft, onChange, errors, lockStructural }: Step1Props) {
 
         <div className={styles.formGroup}>
           <label className={styles.label}>Players per Team (incl. Captain)</label>
-          <input
-            className={`${styles.input} ${getErr(errors, 'playersPerTeam') ? styles.inputError : ''}`}
-            type="number" min={3} max={15}
-            value={draft.playersPerTeam}
-            disabled={lockStructural}
-            onChange={(e) => onChange({ playersPerTeam: Number(e.target.value) })}
-          />
+          <div className={`${styles.catStepper} ${lockStructural ? styles.catStepperDisabled : ''} ${getErr(errors, 'playersPerTeam') ? styles.catStepperError : ''}`}>
+            <button type="button" className={styles.catStepBtn}
+              onClick={() => onChange({ playersPerTeam: Math.max(3, draft.playersPerTeam - 1) })}
+              aria-label="Decrease players per team" disabled={lockStructural || draft.playersPerTeam <= 3}
+            ><Icon name="minus" size={11} /></button>
+            <span className={styles.catStepVal}>{draft.playersPerTeam}</span>
+            <button type="button" className={styles.catStepBtn}
+              onClick={() => onChange({ playersPerTeam: Math.min(15, draft.playersPerTeam + 1) })}
+              aria-label="Increase players per team" disabled={lockStructural || draft.playersPerTeam >= 15}
+            ><Icon name="plus" size={11} /></button>
+          </div>
           {getErr(errors, 'playersPerTeam')
             ? <span className={styles.fieldError}>{getErr(errors, 'playersPerTeam')}</span>
             : lockStructural
@@ -115,29 +123,51 @@ function Step1({ draft, onChange, errors, lockStructural }: Step1Props) {
 
         <div className={styles.formGroup}>
           <label className={styles.label}>Budget per Team (pts)</label>
-          <input
-            className={`${styles.input} ${getErr(errors, 'budget') ? styles.inputError : ''}`}
-            type="number" min={100}
-            value={draft.budget}
-            onChange={(e) => onChange({ budget: Number(e.target.value) })}
-          />
+          <div className={`${styles.catStepper} ${getErr(errors, 'budget') ? styles.catStepperError : ''}`}>
+            <button type="button" className={styles.catStepBtn}
+              onClick={() => onChange({ budget: Math.max(100, draft.budget - 500) })}
+              aria-label="Decrease budget" disabled={draft.budget <= 100}
+            ><Icon name="minus" size={11} /></button>
+            <input
+              type="number" min={100}
+              className={styles.catStepInput}
+              value={draft.budget}
+              onChange={(e) => onChange({ budget: Number(e.target.value) })}
+              aria-label="Budget per team in points"
+            />
+            <button type="button" className={styles.catStepBtn}
+              onClick={() => onChange({ budget: draft.budget + 500 })}
+              aria-label="Increase budget"
+            ><Icon name="plus" size={11} /></button>
+          </div>
           {getErr(errors, 'budget')
             ? <span className={styles.fieldError}>{getErr(errors, 'budget')}</span>
-            : <span className={styles.hint}>Points each captain has to spend</span>
+            : <span className={styles.hint}>Points each captain has to spend · ±500 per click</span>
           }
         </div>
 
         <div className={styles.formGroup}>
           <label className={styles.label}>Min Reserve per Remaining Slot (pts)</label>
-          <input
-            className={`${styles.input} ${getErr(errors, 'minBidReserve') ? styles.inputError : ''}`}
-            type="number" min={0}
-            value={draft.minBidReserve}
-            onChange={(e) => onChange({ minBidReserve: Number(e.target.value) })}
-          />
+          <div className={`${styles.catStepper} ${getErr(errors, 'minBidReserve') ? styles.catStepperError : ''}`}>
+            <button type="button" className={styles.catStepBtn}
+              onClick={() => onChange({ minBidReserve: Math.max(0, draft.minBidReserve - 20) })}
+              aria-label="Decrease minimum reserve" disabled={draft.minBidReserve <= 0}
+            ><Icon name="minus" size={11} /></button>
+            <input
+              type="number" min={0}
+              className={styles.catStepInput}
+              value={draft.minBidReserve}
+              onChange={(e) => onChange({ minBidReserve: Number(e.target.value) })}
+              aria-label="Minimum bid reserve per slot"
+            />
+            <button type="button" className={styles.catStepBtn}
+              onClick={() => onChange({ minBidReserve: draft.minBidReserve + 20 })}
+              aria-label="Increase minimum reserve"
+            ><Icon name="plus" size={11} /></button>
+          </div>
           {getErr(errors, 'minBidReserve')
             ? <span className={styles.fieldError}>{getErr(errors, 'minBidReserve')}</span>
-            : <span className={styles.hint}>Bid cap reserve · 0 = no minimum hold-back</span>
+            : <span className={styles.hint}>Bid cap reserve · 0 = no minimum hold-back · ±20 per click</span>
           }
         </div>
       </div>
@@ -282,24 +312,32 @@ function Step2({ draft, onChange, errors, setErrors, existingPlayers }: Step2Pro
 
                 <div className={styles.catFieldNum}>
                   <label className={styles.label}>Min</label>
-                  <input
-                    className={styles.input}
-                    type="number" min={0} max={squadSize}
-                    value={cat.min}
-                    title="Minimum picks per team"
-                    onChange={(e) => updateCat(i, { min: Number(e.target.value) })}
-                  />
+                  <div className={styles.catStepper}>
+                    <button type="button" className={styles.catStepBtn}
+                      onClick={() => updateCat(i, { min: Math.max(0, cat.min - 1) })}
+                      aria-label="Decrease minimum" disabled={cat.min <= 0}
+                    ><Icon name="minus" size={10} /></button>
+                    <span className={styles.catStepVal}>{cat.min}</span>
+                    <button type="button" className={styles.catStepBtn}
+                      onClick={() => updateCat(i, { min: Math.min(squadSize, cat.min + 1) })}
+                      aria-label="Increase minimum" disabled={cat.min >= squadSize}
+                    ><Icon name="plus" size={10} /></button>
+                  </div>
                 </div>
 
                 <div className={styles.catFieldNum}>
                   <label className={styles.label}>Max</label>
-                  <input
-                    className={styles.input}
-                    type="number" min={0} max={squadSize}
-                    value={cat.max}
-                    title="Maximum picks per team"
-                    onChange={(e) => updateCat(i, { max: Number(e.target.value) })}
-                  />
+                  <div className={styles.catStepper}>
+                    <button type="button" className={styles.catStepBtn}
+                      onClick={() => updateCat(i, { max: Math.max(0, cat.max - 1) })}
+                      aria-label="Decrease maximum" disabled={cat.max <= 0}
+                    ><Icon name="minus" size={10} /></button>
+                    <span className={styles.catStepVal}>{cat.max}</span>
+                    <button type="button" className={styles.catStepBtn}
+                      onClick={() => updateCat(i, { max: Math.min(squadSize, cat.max + 1) })}
+                      aria-label="Increase maximum" disabled={cat.max >= squadSize}
+                    ><Icon name="plus" size={10} /></button>
+                  </div>
                 </div>
               </div>
 
@@ -485,7 +523,7 @@ export function ConfigScreen({
                 <div className={`${styles.stepDot} ${step === s ? styles.stepDotActive : step > s ? styles.stepDotDone : ''}`}>
                   {step > s ? <Icon name="check" size={12} /> : s}
                 </div>
-                <span className={`${styles.stepLabel} ${step === s ? styles.stepLabelActive : ''}`}>
+                <span className={`${styles.stepLabel} ${step === s ? styles.stepLabelActive : step > s ? styles.stepLabelDone : ''}`}>
                   {STEP_LABELS[s]}
                 </span>
               </div>

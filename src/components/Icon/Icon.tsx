@@ -30,7 +30,9 @@ export type IconName =
   | 'shield-check'  // Squad Lock section
   | 'arrow-down'    // Demotion
   | 'undo'          // Undo sale
-  | 'camera';       // Image upload default
+  | 'camera'        // Image upload default
+  | 'plus'          // Increment stepper
+  | 'minus';        // Decrement stepper
 
 // ─── SVG Path Definitions (Lucide icon set, MIT License) ─────────────────────
 
@@ -221,6 +223,14 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
       <circle cx="12" cy="13" r="3" />
     </>
+  ),
+  plus: (
+    <>
+      <path d="M12 5v14" /><path d="M5 12h14" />
+    </>
+  ),
+  minus: (
+    <path d="M5 12h14" />
   ),
 };
 

@@ -18,9 +18,30 @@ const NUM_W     = 10;    // space reserved for the number column
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/** Strip emoji / pictographic characters that jsPDF cannot render. */
-function stripEmoji(text: string): string {
+/**
+ * Sanitize text for jsPDF's built-in Helvetica font.
+ * - Replace common Unicode punctuation/math with ASCII equivalents
+ *   (Helvetica only covers Latin-1; unsupported chars corrupt layout)
+ * - Strip emoji / pictographic characters entirely
+ */
+function sanitizeText(text: string): string {
   return text
+    // ── Math & punctuation replacements (must come before stripping) ──
+    .replace(/\u2212/g, '-')      // − MINUS SIGN → hyphen
+    .replace(/\u00D7/g, 'x')     // × MULTIPLICATION SIGN → x
+    .replace(/\u2192/g, '->')    // → RIGHT ARROW → ->
+    .replace(/\u2190/g, '<-')    // ← LEFT ARROW  → <-
+    .replace(/\u2014/g, '--')    // — EM DASH → --
+    .replace(/\u2013/g, '-')     // – EN DASH → -
+    .replace(/\u00B7/g, '.')     // · MIDDLE DOT → period
+    .replace(/\u22C6/g, '*')     // ⋆ STAR → *
+    .replace(/\u2019/g, "'")     // ' RIGHT SINGLE QUOTATION → '
+    .replace(/\u2018/g, "'")     // ' LEFT SINGLE QUOTATION → '
+    .replace(/\u201C/g, '"')     // " LEFT DOUBLE QUOTATION → "
+    .replace(/\u201D/g, '"')     // " RIGHT DOUBLE QUOTATION → "
+    .replace(/\u2026/g, '...')   // … ELLIPSIS → ...
+    .replace(/\u00D7/g, 'x')     // × (again, in case doubled)
+    // ── Strip emoji / pictographic blocks ──
     .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')
     .replace(/[\u{2600}-\u{27BF}]/gu, '')
     .replace(/[\u{FE00}-\u{FE0F}\u{200D}]/gu, '')
@@ -66,7 +87,7 @@ export function downloadRulesPdf(
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(9);
   pdf.setTextColor(100, 100, 100);
-  const subLines = pdf.splitTextToSize(subtitle, CONTENT_W - 20);
+  const subLines = pdf.splitTextToSize(sanitizeText(subtitle), CONTENT_W - 20);
   pdf.text(subLines, PAGE_W / 2, y + 3, { align: 'center' });
   y += subLines.length * 3.8 + 6;
 
@@ -78,11 +99,11 @@ export function downloadRulesPdf(
 
   // ── Sections ─────────────────────────────────────────────────────────────
   for (const section of sections) {
-    const title = stripEmoji(section.title);
+    const title = sanitizeText(section.title);
 
     // Measure first item so we can keep title + first item together
     const firstItemLines = section.items.length > 0
-      ? pdf.splitTextToSize(section.items[0].text, CONTENT_W - NUM_W - 4) as string[]
+      ? pdf.splitTextToSize(sanitizeText(section.items[0].text), CONTENT_W - NUM_W - 4) as string[]
       : [];
     const firstItemH = firstItemLines.length * LINE_H + ITEM_PAD * 2;
     ensureSpace(10 + firstItemH);
@@ -109,7 +130,7 @@ export function downloadRulesPdf(
       const item = section.items[i];
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(9.5);
-      const textLines = pdf.splitTextToSize(item.text, CONTENT_W - NUM_W - 4) as string[];
+      const textLines = pdf.splitTextToSize(sanitizeText(item.text), CONTENT_W - NUM_W - 4) as string[];
       const blockH = textLines.length * LINE_H + ITEM_PAD * 2;
 
       ensureSpace(blockH);
