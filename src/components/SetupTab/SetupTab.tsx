@@ -35,7 +35,7 @@ function TeamCard({ team, index, onChange }: TeamCardProps) {
             label="Logo"
             size={72}
             circle={false}
-            maxDim={300}
+            maxDim={500}
             placeholder={<Icon name="shield" size={28} />}
           />
           <div className={styles.teamCardTextFields}>
@@ -73,7 +73,8 @@ function TeamCard({ team, index, onChange }: TeamCardProps) {
             label="Captain"
             size={60}
             circle={true}
-            maxDim={200}
+            maxDim={400}
+            smartCrop={true}
             placeholder={<Icon name="user" size={24} />}
           />
           <div style={{ flex: 1 }}>
@@ -171,7 +172,8 @@ function PlayerForm({ editingPlayer, onAdd, onUpdate, onCancelEdit }: PlayerForm
           label="Photo"
           size={80}
           circle={true}
-          maxDim={200}
+          maxDim={400}
+          smartCrop={true}
           placeholder={<Icon name="user" size={32} />}
         />
       </div>

@@ -61,7 +61,7 @@ function Step1({ draft, onChange, errors, lockStructural }: Step1Props) {
               label="Tournament Logo"
               size={72}
               circle={false}
-              maxDim={200}
+              maxDim={600}
               placeholder={<Icon name="trophy" size={28} />}
             />
           </div>

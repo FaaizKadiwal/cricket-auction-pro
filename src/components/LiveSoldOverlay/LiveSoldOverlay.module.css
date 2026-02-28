@@ -1,38 +1,144 @@
-/* ─── Sold Overlay ────────────────────────────────────────────────────────── */
+/* ─── Sold Overlay — three-column stadium layout ──────────────────────────── */
 
 .overlay {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: 1fr 420px 1fr;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ─── Background: team-colour spotlight ───────────────────────────────────── */
+
+.spotlight {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 85% 90% at 50% 50%,
+    color-mix(in srgb, var(--team-glow) 22%, transparent) 0%,
+    color-mix(in srgb, var(--team-glow) 8%, transparent) 40%,
+    transparent 68%
+  );
+  animation: spotlightBreath 2.8s ease-in-out infinite;
+}
+
+@keyframes spotlightBreath {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50%       { opacity: 1;   transform: scale(1.04); }
+}
+
+/* Slowly-rotating light rays — very subtle, adds stadium energy */
+.rays {
+  position: absolute;
+  inset: -30%;          /* overflow so rotation edges stay hidden */
+  pointer-events: none;
+  opacity: 0.055;
+  background: repeating-conic-gradient(
+    var(--team-glow) 0deg 5deg,
+    transparent      5deg 25deg
+  );
+  animation: raysRotate 30s linear infinite;
+}
+
+@keyframes raysRotate {
+  to { transform: rotate(360deg); }
+}
+
+/* ─── Left column: team logo ──────────────────────────────────────────────── */
+
+.colLeft {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  position: relative;
+  z-index: 2;
+}
+
+.teamLogo {
+  width: auto;
+  height: auto;
+  max-height: 240px;
+  max-width: min(300px, 88%);
+  object-fit: contain;
+  filter:
+    drop-shadow(0 0 40px color-mix(in srgb, var(--team-glow) 70%, transparent))
+    drop-shadow(0 0 90px color-mix(in srgb, var(--team-glow) 35%, transparent));
+  animation:
+    logoDrop  0.85s 0.15s cubic-bezier(0.22, 1.2, 0.36, 1) both,
+    logoFloat 3.2s  1.1s  ease-in-out infinite;
+}
+
+.teamLogoFallback {
+  width: 180px;
+  height: 180px;
+  border-radius: var(--radius-xl);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 64px;
+  background: color-mix(in srgb, var(--team-glow) 12%, transparent);
+  border: 2px solid color-mix(in srgb, var(--team-glow) 35%, transparent);
+  animation:
+    logoDrop  0.85s 0.15s cubic-bezier(0.22, 1.2, 0.36, 1) both,
+    logoFloat 3.2s  1.1s  ease-in-out infinite;
+}
+
+/* Drop from above with elastic settle */
+@keyframes logoDrop {
+  0%   { opacity: 0; transform: translateY(-180px) scale(0.45) rotate(-14deg); }
+  52%  { opacity: 1; transform: translateY(22px)  scale(1.12) rotate(3.5deg);  }
+  72%  { transform: translateY(-10px) scale(0.96) rotate(-1.5deg); }
+  88%  { transform: translateY(5px)  scale(1.02) rotate(0.5deg);  }
+  100% { opacity: 1; transform: translateY(0)    scale(1)    rotate(0deg);     }
+}
+
+@keyframes logoFloat {
+  0%, 100% { transform: translateY(0)    scale(1);    }
+  50%       { transform: translateY(-18px) scale(1.04); }
+}
+
+/* ─── Centre column ───────────────────────────────────────────────────────── */
+
+.colCenter {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
-  padding: 20px;
+  gap: 14px;
+  position: relative;
+  z-index: 2;
 }
 
-/* ─── SOLD Stamp ──────────────────────────────────────────────────────────── */
+/* ─── SOLD stamp ──────────────────────────────────────────────────────────── */
 
 .stampArea {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 140px;
+  min-height: 130px;
 }
 
 .soldText {
   font-family: var(--font-display);
-  font-size: 120px;
+  font-size: 108px;
   letter-spacing: 12px;
   color: #00ff88;
   text-shadow:
-    0 0 40px rgba(0, 255, 136, 0.4),
-    0 0 80px rgba(0, 255, 136, 0.2);
-  animation: soldStamp 0.7s ease-out forwards;
+    0 0 30px rgba(0, 255, 136, 0.6),
+    0 0 70px rgba(0, 255, 136, 0.3),
+    0 0 120px rgba(0, 255, 136, 0.12);
+  animation: soldStamp 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 @keyframes soldStamp {
-  0%   { transform: scale(3) rotate(-12deg); opacity: 0; }
-  40%  { transform: scale(0.92) rotate(2deg); opacity: 1; }
-  60%  { transform: scale(1.06) rotate(-1deg); }
+  0%   { transform: scale(3.5) rotate(-16deg); opacity: 0; filter: blur(8px); }
+  40%  { transform: scale(0.88) rotate(2.5deg); opacity: 1; filter: blur(0); }
+  62%  { transform: scale(1.08) rotate(-1deg); }
   100% { transform: scale(1) rotate(0deg); opacity: 1; }
 }
 
@@ -49,7 +155,7 @@
 }
 
 @keyframes particleBurst {
-  0%   { transform: translate(0, 0) scale(1); opacity: 1; }
+  0%   { transform: translate(0, 0) scale(1.2); opacity: 1; }
   100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
 }
 
@@ -59,36 +165,41 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  animation: fadeSlideUp 0.5s 0.4s ease-out both;
+  animation: fadeSlideUp 0.5s 0.45s ease-out both;
 }
 
 .playerInfo {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
 .playerName {
   font-family: var(--font-display);
-  font-size: 36px;
+  font-size: 34px;
   letter-spacing: 2px;
   color: var(--text);
 }
 
 .playerCat {
-  font-family: var(--font-body);
-  font-size: 14px;
+  font-size: 12px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 3px;
+  letter-spacing: 3.5px;
 }
 
-/* ─── Divider ─────────────────────────────────────────────────────────────── */
+/* ─── Divider (team colour tint) ──────────────────────────────────────────── */
 
 .divider {
-  width: 200px;
+  width: 260px;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(0, 180, 255, 0.3), transparent);
-  animation: fadeSlideUp 0.5s 0.5s ease-out both;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--team-glow) 45%, transparent),
+    transparent
+  );
+  animation: fadeSlideUp 0.4s 0.55s ease-out both;
 }
 
 /* ─── Team row ────────────────────────────────────────────────────────────── */
@@ -96,13 +207,13 @@
 .teamRow {
   display: flex;
   align-items: center;
-  gap: 16px;
-  animation: fadeSlideUp 0.5s 0.6s ease-out both;
+  gap: 14px;
+  animation: fadeSlideUp 0.5s 0.65s ease-out both;
 }
 
 .teamName {
   font-family: var(--font-display);
-  font-size: 36px;
+  font-size: 30px;
   letter-spacing: 2px;
 }
 
@@ -113,12 +224,14 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  padding: 12px 40px;
-  background: rgba(12, 12, 30, 0.7);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(0, 212, 255, 0.2);
+  padding: 12px 44px;
+  background: rgba(6, 6, 18, 0.8);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border: 1px solid color-mix(in srgb, var(--team-glow) 30%, transparent);
   border-radius: var(--radius-xl);
-  animation: fadeSlideUp 0.5s 0.7s ease-out both;
+  box-shadow: 0 0 40px color-mix(in srgb, var(--team-glow) 12%, transparent);
+  animation: fadeSlideUp 0.5s 0.82s ease-out both;
 }
 
 .priceLabel {
@@ -130,71 +243,76 @@
 
 .priceValue {
   font-family: var(--font-mono);
-  font-size: 48px;
+  font-size: 44px;
   font-weight: 700;
-  color: var(--accent);
-  text-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+  text-shadow: 0 0 28px color-mix(in srgb, var(--team-glow) 55%, transparent);
 }
 
-/* ─── Side team logos (slam-in from edges) ────────────────────────────────── */
+/* ─── Right column: welcome message ──────────────────────────────────────── */
 
-.sideLogoLeft,
-.sideLogoRight {
-  position: absolute;
-  top: 50%;
-  z-index: 0;
+.colRight {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 24px 16px 24px 8px;
+  position: relative;
+  z-index: 2;
 }
 
-.sideLogoLeft {
-  left: 8%;
-  animation: slamFromLeft 0.6s 0.3s cubic-bezier(0.22, 1.2, 0.36, 1) both;
+.welcomeWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.sideLogoRight {
-  right: 8%;
-  animation: slamFromRight 0.6s 0.3s cubic-bezier(0.22, 1.2, 0.36, 1) both;
+/* Accent bar — slides in first */
+.welcomeAccentBar {
+  width: 52px;
+  height: 4px;
+  border-radius: 2px;
+  margin-bottom: 6px;
+  animation: slideFromRight 0.4s 0.2s ease-out both;
+  box-shadow: 0 0 16px color-mix(in srgb, var(--team-glow) 70%, transparent);
 }
 
-.sideLogoImg {
-  border-radius: var(--radius-lg) !important;
-  box-shadow:
-    0 0 40px color-mix(in srgb, var(--team-glow) 35%, transparent),
-    0 0 80px color-mix(in srgb, var(--team-glow) 15%, transparent);
-  animation: logoFloat 2.4s 0.9s ease-in-out infinite;
+.welcomeLabel {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 6px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  animation: slideFromRight 0.45s 0.35s ease-out both;
 }
 
-@keyframes slamFromLeft {
-  0%   { opacity: 0; transform: translateY(-50%) translateX(-200px) scale(2) rotate(15deg); }
-  50%  { opacity: 1; transform: translateY(-50%) translateX(10px) scale(0.9) rotate(-3deg); }
-  70%  { transform: translateY(-50%) translateX(-5px) scale(1.05) rotate(1deg); }
-  100% { opacity: 1; transform: translateY(-50%) translateX(0) scale(1) rotate(0deg); }
+/* The big team identity — most dramatic element */
+.welcomeName {
+  font-family: var(--font-display);
+  font-size: clamp(38px, 4.8vw, 70px);
+  letter-spacing: 4px;
+  line-height: 1.05;
+  text-transform: uppercase;
+  filter: drop-shadow(0 0 24px color-mix(in srgb, var(--team-glow) 65%, transparent));
+  animation: slideFromRight 0.7s 0.52s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-@keyframes slamFromRight {
-  0%   { opacity: 0; transform: translateY(-50%) translateX(200px) scale(2) rotate(-15deg); }
-  50%  { opacity: 1; transform: translateY(-50%) translateX(-10px) scale(0.9) rotate(3deg); }
-  70%  { transform: translateY(-50%) translateX(5px) scale(1.05) rotate(-1deg); }
-  100% { opacity: 1; transform: translateY(-50%) translateX(0) scale(1) rotate(0deg); }
+.welcomeTagline {
+  font-size: 11px;
+  letter-spacing: 4px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  font-style: italic;
+  margin-top: 4px;
+  animation: slideFromRight 0.4s 1s ease-out both;
 }
 
-@keyframes logoFloat {
-  0%, 100% {
-    transform: translateY(0) scale(1);
-    box-shadow:
-      0 0 40px color-mix(in srgb, var(--team-glow) 35%, transparent),
-      0 0 80px color-mix(in srgb, var(--team-glow) 15%, transparent);
-  }
-  50% {
-    transform: translateY(-10px) scale(1.08);
-    box-shadow:
-      0 0 60px color-mix(in srgb, var(--team-glow) 50%, transparent),
-      0 0 120px color-mix(in srgb, var(--team-glow) 25%, transparent);
-  }
+@keyframes slideFromRight {
+  from { opacity: 0; transform: translateX(70px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
-/* ─── Shared animation ────────────────────────────────────────────────────── */
+/* ─── Shared ──────────────────────────────────────────────────────────────── */
 
 @keyframes fadeSlideUp {
-  from { opacity: 0; transform: translateY(16px); }
+  from { opacity: 0; transform: translateY(18px); }
   to   { opacity: 1; transform: translateY(0); }
 }

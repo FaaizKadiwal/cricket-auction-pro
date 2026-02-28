@@ -18,14 +18,14 @@
 }
 
 .logoSquare {
-  border-radius: 8px;
-  object-fit: cover;
+  border-radius: 0;
+  object-fit: contain;
   flex-shrink: 0;
   display: block;
 }
 
 .logoFallback {
-  border-radius: 8px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;

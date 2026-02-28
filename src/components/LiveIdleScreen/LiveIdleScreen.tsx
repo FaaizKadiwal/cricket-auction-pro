@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import type { TournamentConfig, Team, SoldPlayer } from '@/types';
 import { getSquadSize } from '@/constants/auction';
-import { Avatar } from '@/components/Avatar/Avatar';
 import styles from './LiveIdleScreen.module.css';
 
 interface LiveIdleScreenProps {
@@ -27,13 +26,7 @@ export function LiveIdleScreen({ config, soldPlayers, teams }: LiveIdleScreenPro
       <div className={styles.logoWrapper}>
         <div className={styles.logoGlow} aria-hidden="true" />
         {config.logoBase64 ? (
-          <Avatar
-            src={config.logoBase64}
-            name={config.tournamentName}
-            size={180}
-            square
-            className={styles.logo}
-          />
+          <img src={config.logoBase64} alt={config.tournamentName} className={styles.logo} />
         ) : (
           <div className={styles.logoFallback} aria-hidden="true">🏏</div>
         )}

@@ -21,11 +21,11 @@
 .logoIcon { font-size: 24px; line-height: 1; }
 
 .logoImg {
-  height: 36px;
+  height: 44px;
   width: auto;
-  max-width: 64px;
+  max-width: 120px;
   object-fit: contain;
-  border-radius: 6px;
+  border-radius: 0;
   flex-shrink: 0;
 }
 

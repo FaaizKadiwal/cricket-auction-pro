@@ -59,8 +59,13 @@
 }
 
 .logo {
-  border-radius: var(--radius-lg) !important;
-  box-shadow: 0 0 50px rgba(0, 212, 255, 0.25);
+  max-height: 160px;
+  width: auto;
+  max-width: 280px;
+  object-fit: contain;
+  border-radius: 0;
+  display: block;
+  filter: drop-shadow(0 0 20px rgba(0, 212, 255, 0.35));
 }
 
 .logoFallback {

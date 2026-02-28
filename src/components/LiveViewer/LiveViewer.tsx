@@ -9,7 +9,6 @@ import { LiveSoldOverlay } from '@/components/LiveSoldOverlay/LiveSoldOverlay';
 import { LiveUnsoldOverlay } from '@/components/LiveUnsoldOverlay/LiveUnsoldOverlay';
 import { LiveSquadView } from '@/components/LiveSquadView/LiveSquadView';
 import { LogoTransition } from '@/components/LogoTransition/LogoTransition';
-import { Avatar } from '@/components/Avatar/Avatar';
 import styles from './LiveViewer.module.css';
 
 // ─── Display phase includes LOGO_TRANSITION on top of data phases ───────────
@@ -18,8 +17,8 @@ type DisplayPhase = ViewerPhase | 'LOGO_TRANSITION';
 
 // ─── Timing constants (ms) ──────────────────────────────────────────────────
 
-const LOGO_DURATION  = 1800;
-const SOLD_DISPLAY   = 5000;
+const LOGO_DURATION  = 2000;
+const SOLD_DISPLAY   = 10000;
 const UNSOLD_DISPLAY = 2500;
 
 // ─── Waiting Screen ─────────────────────────────────────────────────────────
@@ -122,14 +121,13 @@ export function LiveViewerApp() {
           {/* Header bar */}
           <header className={styles.header}>
             <div className={styles.headerLeft}>
-              <Avatar
-                src={state.config.logoBase64}
-                name={state.config.tournamentName}
-                size={40}
-                color="var(--accent)"
-                square
-                className={styles.headerLogo}
-              />
+              {state.config.logoBase64 && (
+                <img
+                  src={state.config.logoBase64}
+                  alt={state.config.tournamentName}
+                  className={styles.headerLogo}
+                />
+              )}
               <span className={styles.tournamentName}>{state.config.tournamentName}</span>
             </div>
             <div className={styles.liveBadge}>

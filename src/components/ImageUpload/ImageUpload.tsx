@@ -10,11 +10,12 @@ interface ImageUploadProps {
   size?: number;       // px width/height of the zone
   circle?: boolean;
   maxDim?: number;     // resize target dimension
+  smartCrop?: boolean; // square-crop portrait images (good for photos/avatars)
   placeholder?: ReactNode;
 }
 
 export function ImageUpload({
-  value, onChange, label, size = 80, circle = false, maxDim = 300, placeholder = null,
+  value, onChange, label, size = 80, circle = false, maxDim = 300, smartCrop = false, placeholder = null,
 }: ImageUploadProps) {
   const inputRef  = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -32,7 +33,7 @@ export function ImageUpload({
     }
     setError(null);
     try {
-      const b64 = await resizeImage(file, maxDim);
+      const b64 = await resizeImage(file, maxDim, 0.85, smartCrop);
       onChange(b64);
     } catch {
       setError('Failed to process image.');
