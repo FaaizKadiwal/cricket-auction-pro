@@ -13,7 +13,7 @@ export interface ViewerState {
   soldPlayers: SoldPlayer[];
   bidding: BiddingPayload | null;
   lastSold: SoldPayload | null;
-  unsoldInfo: { playerName: string; demoted: boolean; newCategory?: string; halvedInPlace?: boolean } | null;
+  unsoldInfo: { player: Player; demoted: boolean; newCategory?: string; halvedInPlace?: boolean } | null;
   connected: boolean;
 }
 
@@ -46,7 +46,9 @@ function viewerReducer(state: ViewerState, action: ViewerAction): ViewerState {
         soldPlayers: action.soldPlayers,
         bidding: action.bidding,
         lastSold: action.lastSold,
-        unsoldInfo: null,
+        // Preserve unsoldInfo if phase stays UNSOLD — sync fires every 3 s and
+        // doesn't carry unsoldInfo, so clearing it would blank the overlay mid-display.
+        unsoldInfo: action.phase === 'UNSOLD' ? state.unsoldInfo : null,
       };
 
     case 'BIDDING_START':
@@ -90,7 +92,7 @@ function viewerReducer(state: ViewerState, action: ViewerAction): ViewerState {
         ...state,
         phase: 'UNSOLD',
         bidding: null,
-        unsoldInfo: { playerName: action.playerName, demoted: action.demoted, newCategory: action.newCategory, halvedInPlace: action.halvedInPlace },
+        unsoldInfo: { player: action.player, demoted: action.demoted, newCategory: action.newCategory, halvedInPlace: action.halvedInPlace },
         players: action.players,
       };
 
@@ -130,7 +132,13 @@ export function useLiveViewer(): ViewerState {
 
   // Open channel and listen for messages
   useEffect(() => {
-    const ch = new BroadcastChannel(LIVE_CHANNEL_NAME);
+    let ch: BroadcastChannel;
+    try {
+      ch = new BroadcastChannel(LIVE_CHANNEL_NAME);
+    } catch {
+      console.warn('BroadcastChannel not available — live viewer cannot connect.');
+      return;
+    }
     channelRef.current = ch;
 
     ch.onmessage = (e: MessageEvent<LiveMessage>) => {

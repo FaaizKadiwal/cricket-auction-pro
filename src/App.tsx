@@ -9,6 +9,7 @@ import { ConfigScreen } from '@/components/ConfigScreen/ConfigScreen';
 import { Header } from '@/components/Header/Header';
 import { ToastContainer } from '@/components/Toast/Toast';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import styles from '@/App.module.css';
 import { SetupTab } from '@/components/SetupTab/SetupTab';
 import { AuctionTab } from '@/components/AuctionTab/AuctionTab';
 import { SquadsTab } from '@/components/SquadsTab/SquadsTab';
@@ -27,22 +28,6 @@ function buildTeams(totalTeams: number): Team[] {
   }));
 }
 
-// ─── Layout styles ────────────────────────────────────────────────────────────
-
-const appStyle: React.CSSProperties = {
-  minHeight: '100vh',
-  display: 'flex',
-  flexDirection: 'column',
-};
-
-const mainStyle: React.CSSProperties = {
-  flex: 1,
-  maxWidth: 1440,
-  width: '100%',
-  margin: '0 auto',
-  padding: '24px',
-};
-
 // ─── App ──────────────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -54,7 +39,7 @@ export default function App() {
   const [players,     setPlayers]     = useLocalStorage<Player[]>(STORAGE_KEYS.PLAYERS, []);
   const [soldPlayers, setSoldPlayers] = useLocalStorage<SoldPlayer[]>(STORAGE_KEYS.SOLD_PLAYERS, []);
 
-  const { toasts, showToast, dismissToast } = useToast(5000);
+  const { toasts, exitingIds, showToast, dismissToast } = useToast(5000);
   const [showConfigEditor, setShowConfigEditor] = useState(false);
 
   // Live viewer broadcast (only responds to sync when config exists)
@@ -234,7 +219,7 @@ export default function App() {
     return (
       <>
         <ConfigScreen onLaunch={handleLaunch} />
-        <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+        <ToastContainer toasts={toasts} exitingIds={exitingIds} onDismiss={dismissToast} />
       </>
     );
   }
@@ -242,7 +227,7 @@ export default function App() {
   // Step 2: full app shell
   return (
     <TournamentProvider config={config}>
-      <div style={appStyle}>
+      <div className={styles.app}>
         <Header
           activeTab={activeTab}
           onTabChange={setActiveTab}
@@ -251,7 +236,7 @@ export default function App() {
           onEditConfig={() => setShowConfigEditor(true)}
         />
 
-        <main style={mainStyle} id="main-content">
+        <main className={styles.main} id="main-content">
           {activeTab === 'setup' && (
             <ErrorBoundary fallbackLabel="Setup Tab">
               <SetupTab
@@ -291,7 +276,7 @@ export default function App() {
           )}
         </main>
 
-        <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+        <ToastContainer toasts={toasts} exitingIds={exitingIds} onDismiss={dismissToast} />
       </div>
 
       {showConfigEditor && (

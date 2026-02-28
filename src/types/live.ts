@@ -57,7 +57,7 @@ export interface SoldMessage {
 
 export interface UnsoldMessage {
   type: 'UNSOLD';
-  playerName: string;
+  player: Player;
   demoted: boolean;
   newCategory?: Category;
   halvedInPlace?: boolean;

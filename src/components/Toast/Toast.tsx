@@ -4,10 +4,11 @@ import styles from './Toast.module.css';
 
 interface ToastContainerProps {
   toasts: ToastMessage[];
+  exitingIds?: Set<number>;
   onDismiss: (id: number) => void;
 }
 
-export function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
+export function ToastContainer({ toasts, exitingIds, onDismiss }: ToastContainerProps) {
   if (toasts.length === 0) return null;
 
   return (
@@ -21,7 +22,7 @@ export function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
       {toasts.map((t) => (
         <div
           key={t.id}
-          className={`${styles.toast} ${t.type === 'ok' ? styles.toastOk : styles.toastWarn}`}
+          className={`${styles.toast} ${t.type === 'ok' ? styles.toastOk : styles.toastWarn} ${exitingIds?.has(t.id) ? styles.toastExiting : ''}`}
           role="alert"
         >
           <span className={styles.icon} aria-hidden="true">
@@ -31,6 +32,7 @@ export function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
           </span>
           <span className={styles.message}>{t.msg}</span>
           <button
+            type="button"
             className={styles.dismiss}
             onClick={() => onDismiss(t.id)}
             aria-label="Dismiss notification"

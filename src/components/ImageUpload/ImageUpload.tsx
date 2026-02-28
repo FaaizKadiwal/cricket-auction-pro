@@ -66,7 +66,7 @@ export function ImageUpload({
       >
         {value ? (
           <>
-            <img src={value} alt="preview" className={styles.previewImg} />
+            <img src={value} alt={label ? `${label} preview` : 'Uploaded image preview'} className={styles.previewImg} />
             <button
               className={styles.removeBtn}
               onClick={(e) => { e.stopPropagation(); onChange(null); }}

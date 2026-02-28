@@ -161,7 +161,7 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
     } else {
       updatedPlayers = players.map((p) => p.id === currentPlayer.id ? { ...p, status: 'unsold' as const } : p);
     }
-    broadcast?.broadcastUnsold(playerName, result.demoted, result.newCategory, updatedPlayers, result.halvedInPlace);
+    broadcast?.broadcastUnsold(currentPlayer, result.demoted, result.newCategory, updatedPlayers, result.halvedInPlace);
     // Reset stage without broadcasting cancel
     setCurrentPlayer(null); setCurrentBid(0); setLeadingTeamId(null); setLog([]); setBidHistory([]);
   }, [currentPlayer, players, onUnsold, onToast, broadcast]);
@@ -511,7 +511,12 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
                   <div
                     className={styles.progressBar}
                     style={{ width: `${used}%`, background: getBarColorToken(used) }}
-                    role="progressbar" aria-valuenow={used} aria-valuemin={0} aria-valuemax={100}
+                    role="progressbar"
+                    aria-valuenow={used}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuetext={`${used}% of budget spent`}
+                    aria-label={`${team.name || `Team ${team.id}`} budget usage`}
                   />
                 </div>
 

@@ -113,6 +113,10 @@ a {
 }
 
 /* ─── Custom scrollbar ───────────────────────────────────────────────────────── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) var(--surface);
+}
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;

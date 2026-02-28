@@ -19,7 +19,7 @@ type DisplayPhase = ViewerPhase | 'LOGO_TRANSITION';
 
 const LOGO_DURATION  = 2000;
 const SOLD_DISPLAY   = 10000;
-const UNSOLD_DISPLAY = 2500;
+const UNSOLD_DISPLAY = 5000;
 
 // ─── Waiting Screen ─────────────────────────────────────────────────────────
 
@@ -47,7 +47,9 @@ export function LiveViewerApp() {
   const [displayPhase, setDisplayPhase] = useState<DisplayPhase>('IDLE');
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timer2Ref = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const prevDataPhase = useRef<ViewerPhase>('IDLE');
+  const prevDataPhase  = useRef<ViewerPhase>('IDLE');
+  const soldCountRef   = useRef(state.soldPlayers.length);
+  soldCountRef.current = state.soldPlayers.length;
 
   const clearTimers = () => {
     if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
@@ -76,7 +78,7 @@ export function LiveViewerApp() {
     if (dataPhase === 'SOLD') {
       setDisplayPhase('SOLD');
       timerRef.current = setTimeout(() => {
-        const afterPhase = state.soldPlayers.length > 0 ? 'SQUAD_VIEW' : 'IDLE';
+        const afterPhase = soldCountRef.current > 0 ? 'SQUAD_VIEW' : 'IDLE';
         setDisplayPhase('LOGO_TRANSITION');
         timer2Ref.current = setTimeout(() => setDisplayPhase(afterPhase), LOGO_DURATION);
       }, SOLD_DISPLAY);
@@ -87,7 +89,7 @@ export function LiveViewerApp() {
     if (dataPhase === 'UNSOLD') {
       setDisplayPhase('UNSOLD');
       timerRef.current = setTimeout(() => {
-        const afterPhase = state.soldPlayers.length > 0 ? 'SQUAD_VIEW' : 'IDLE';
+        const afterPhase = soldCountRef.current > 0 ? 'SQUAD_VIEW' : 'IDLE';
         setDisplayPhase('LOGO_TRANSITION');
         timer2Ref.current = setTimeout(() => setDisplayPhase(afterPhase), LOGO_DURATION);
       }, UNSOLD_DISPLAY);
@@ -174,7 +176,7 @@ export function LiveViewerApp() {
             {displayPhase === 'UNSOLD' && state.unsoldInfo && (
               <div className={styles.phaseEnter} key="unsold">
                 <LiveUnsoldOverlay
-                  playerName={state.unsoldInfo.playerName}
+                  player={state.unsoldInfo.player}
                   demoted={state.unsoldInfo.demoted}
                   newCategory={state.unsoldInfo.newCategory}
                   halvedInPlace={state.unsoldInfo.halvedInPlace}
