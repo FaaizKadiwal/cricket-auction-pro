@@ -172,6 +172,20 @@
   font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; border: 1px solid;
 }
 
+.poolSearch {
+  width: 100%;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 13px;
+}
+.poolSearch:focus { outline: none; border-color: var(--accent); }
+.poolSearch::placeholder { color: var(--muted); }
+
 .poolTable { width: 100%; border-collapse: collapse; }
 .poolTable th {
   text-align: left; padding: 8px 10px; font-size: 10px; font-weight: 600;
@@ -252,6 +266,18 @@
 
 .catBadges { display: flex; gap: 3px; flex-wrap: wrap; margin-top: 3px; }
 .catBadge  { font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: 700; }
+
+.needsRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: var(--warning);
+}
+.needsImpossible { color: var(--danger); }
 
 .unsoldSection {
   background: var(--surface); border: 1px solid var(--border);

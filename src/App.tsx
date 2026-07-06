@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { TabId, Team, Player, SoldPlayer, TournamentConfig, DemotionResult } from '@/types';
+import type { TabId, Team, Player, SoldPlayer, TournamentConfig, DemotionResult, BidValidationResult } from '@/types';
 import { DEFAULT_TEAM_COLORS, STORAGE_KEYS } from '@/constants/auction';
+import { validateSaleEdit } from '@/utils/auction';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useToast } from '@/hooks/useToast';
 import { useBroadcast } from '@/hooks/useBroadcast';
@@ -244,6 +245,51 @@ export default function App() {
     [soldPlayers, setSoldPlayers, setPlayers]
   );
 
+  /**
+   * Correct an already-completed sale — reassign the player to the right team
+   * and/or fix the final price. Because every squad, budget and category total
+   * is derived from `soldPlayers`, updating the one record recalculates both the
+   * old and new team's figures everywhere automatically. Returns a validation
+   * result so the caller can surface a reason on failure.
+   */
+  const handleEditSale = useCallback(
+    (playerId: number, newTeamId: number, newFinalPrice: number): BidValidationResult => {
+      if (!config) return { valid: false, reason: 'No tournament configured.' };
+      const sold = soldPlayers.find((s) => s.id === playerId);
+      if (!sold) return { valid: false, reason: 'Sale not found.' };
+      const team = teams.find((t) => t.id === newTeamId);
+      if (!team) return { valid: false, reason: 'Team not found.' };
+
+      const result = validateSaleEdit(soldPlayers, playerId, sold.category, newTeamId, newFinalPrice, config);
+      if (!result.valid) return result;
+
+      setSoldPlayers((prev) =>
+        prev.map((s) =>
+          s.id === playerId
+            ? { ...s, teamId: newTeamId, teamName: team.name, teamColor: team.color, finalPrice: newFinalPrice }
+            : s
+        )
+      );
+      return { valid: true };
+    },
+    [config, soldPlayers, teams, setSoldPlayers]
+  );
+
+  /**
+   * Send a specific sold player back to the pool for re-auction — removes the
+   * sale (refunding the team) and returns the player to 'pending'. Unlike Undo
+   * Last Sale this works for any sale, not just the most recent.
+   */
+  const handleReturnToPool = useCallback(
+    (playerId: number) => {
+      setSoldPlayers((prev) => prev.filter((s) => s.id !== playerId));
+      setPlayers((prev) =>
+        prev.map((p) => (p.id === playerId ? { ...p, status: 'pending' as const } : p))
+      );
+    },
+    [setSoldPlayers, setPlayers]
+  );
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   // Step 1: config wizard not yet completed
@@ -297,7 +343,7 @@ export default function App() {
 
           {activeTab === 'squads' && (
             <ErrorBoundary fallbackLabel="Squads Tab">
-              <SquadsTab teams={teams} soldPlayers={soldPlayers} />
+              <SquadsTab teams={teams} soldPlayers={soldPlayers} onEditSale={handleEditSale} onReturnToPool={handleReturnToPool} onToast={showToast} />
             </ErrorBoundary>
           )}
 

@@ -89,3 +89,11 @@ export interface BidValidationResult {
   valid: boolean;
   reason?: string;
 }
+
+/** An unmet per-team category minimum (only produced when count < min). */
+export interface CategoryNeed {
+  category: Category;
+  count: number;
+  min: number;
+  need: number; // min − count, always > 0
+}

@@ -1,0 +1,177 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 15, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  padding: 20px;
+}
+
+.panel {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 18px;
+  letter-spacing: 0.5px;
+}
+
+.closeBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+.closeBtn:hover { color: var(--text); border-color: var(--border-light); }
+
+.playerRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.playerName { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+.catBadge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.field { display: block; padding: 12px 18px 0; }
+.fieldLabel {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+.select, .input {
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 14px;
+  font-family: var(--font-body);
+}
+.input { font-family: var(--font-mono); }
+.select:focus, .input:focus { outline: none; border-color: var(--accent); }
+
+.error, .preview {
+  margin: 12px 18px 0;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.4;
+}
+.error { color: var(--danger); }
+.preview { color: var(--text-secondary); }
+
+.actions {
+  display: flex;
+  gap: 10px;
+  padding: 18px;
+  margin-top: 6px;
+}
+.cancelBtn, .saveBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  transition: filter var(--transition-fast), color var(--transition-fast);
+}
+.cancelBtn { background: var(--surface2); color: var(--text-secondary); }
+.cancelBtn:hover { color: var(--text); }
+.saveBtn { background: var(--accent); color: #000; border-color: var(--accent); }
+.saveBtn:hover:not(:disabled) { filter: brightness(1.1); }
+.saveBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.returnLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: calc(100% - 36px);
+  margin: 0 18px 18px;
+  padding: 8px;
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+.returnLink:hover { color: var(--danger); border-color: var(--danger); }
+
+.returnArea { padding: 4px 18px 18px; }
+.returnWarn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--warning);
+  line-height: 1.4;
+  margin-bottom: 14px;
+}
+.returnBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  background: var(--danger);
+  color: #fff;
+  border: 1px solid var(--danger);
+  transition: filter var(--transition-fast);
+}
+.returnBtn:hover { filter: brightness(1.1); }

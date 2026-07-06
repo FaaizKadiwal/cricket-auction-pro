@@ -1,5 +1,5 @@
 import type {
-  Category, SoldPlayer, BidCapResult, BidValidationResult, ValidationError, TournamentConfig,
+  Category, SoldPlayer, BidCapResult, BidValidationResult, CategoryNeed, ValidationError, TournamentConfig,
 } from '@/types';
 
 // ─── Squad Queries (pure, no config needed) ───────────────────────────────────
@@ -74,6 +74,76 @@ export function validateBid(
         `(${slotsAfterWin} slot${slotsAfterWin !== 1 ? 's' : ''} × ${config.minBidReserve} min). ` +
         `Max allowed: ${cap.toLocaleString()} pts.`,
     };
+  }
+
+  return { valid: true };
+}
+
+// ─── Category Minimums ────────────────────────────────────────────────────────
+
+/**
+ * Per-team categories whose configured minimum is not yet met. Categories with
+ * `min === 0` (no minimum) are ignored. Used to warn the operator that a team
+ * still owes players in a category.
+ */
+export function getCategoryNeeds(
+  teamId: number,
+  soldPlayers: SoldPlayer[],
+  config: TournamentConfig,
+): CategoryNeed[] {
+  const needs: CategoryNeed[] = [];
+  for (const c of config.categories) {
+    if (c.min <= 0) continue;
+    const count = getCatCount(teamId, c.name, soldPlayers);
+    if (count < c.min) needs.push({ category: c.name, count, min: c.min, need: c.min - count });
+  }
+  return needs;
+}
+
+// ─── Sale Correction ──────────────────────────────────────────────────────────
+
+/**
+ * Validate reassigning an already-sold player to `newTeamId` at `newFinalPrice`
+ * (used to correct a mis-clicked sale after the fact). The sale being edited is
+ * excluded from the target team's totals so a same-team price tweak, or a move
+ * back to a team the player is already on, is measured correctly.
+ *
+ * The bidding-time reserve cap is intentionally NOT applied here: this is an
+ * administrative correction of a historical price, not a live bid. Only the
+ * hard invariants that keep the math consistent are enforced — squad size,
+ * per-category max, and never spending more than the budget.
+ */
+export function validateSaleEdit(
+  soldPlayers: SoldPlayer[],
+  playerId: number,
+  category: Category,
+  newTeamId: number,
+  newFinalPrice: number,
+  config: TournamentConfig,
+): BidValidationResult {
+  const squadSize = config.playersPerTeam - 1;
+
+  if (!Number.isFinite(newFinalPrice) || newFinalPrice < 1) {
+    return { valid: false, reason: 'Price must be at least 1 pt.' };
+  }
+
+  // Everything on the target team except the sale we are editing.
+  const others = soldPlayers.filter((s) => s.teamId === newTeamId && s.id !== playerId);
+
+  if (others.length + 1 > squadSize) {
+    return { valid: false, reason: `Squad is already full (${squadSize} players).` };
+  }
+
+  const catDef = config.categories.find((c) => c.name === category);
+  const catLimit = catDef?.max ?? 0;
+  if (catLimit > 0 && others.filter((s) => s.category === category).length + 1 > catLimit) {
+    return { valid: false, reason: `${category} limit reached (max ${catLimit} per team).` };
+  }
+
+  const otherSpend = others.reduce((sum, s) => sum + s.finalPrice, 0);
+  const remaining = config.budget - otherSpend;
+  if (newFinalPrice > remaining) {
+    return { valid: false, reason: `Exceeds budget — only ${remaining.toLocaleString()} pts available on this team.` };
   }
 
   return { valid: true };

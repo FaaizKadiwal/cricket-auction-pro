@@ -164,6 +164,20 @@
   margin-bottom: 16px;
 }
 
+.poolSearch {
+  width: 100%;
+  padding: 8px 12px;
+  margin-bottom: 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 13px;
+}
+.poolSearch:focus { outline: none; border-color: var(--accent); }
+.poolSearch::placeholder { color: var(--muted); }
+
 .addBtn {
   width: 100%;
   padding: 10px;

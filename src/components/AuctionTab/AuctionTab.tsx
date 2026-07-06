@@ -3,11 +3,12 @@ import type { Team, Player, SoldPlayer, Category, DemotionResult } from '@/types
 import type { BidIncrement } from '@/constants/auction';
 import type { BroadcastHandle } from '@/hooks/useBroadcast';
 import { getCategoryStyle, getActiveIncrement, MAX_LOG_ENTRIES } from '@/constants/auction';
-import { getBidCap, getSquad, getSpent, getCatCount, validateBid } from '@/utils/auction';
+import { getBidCap, getSquad, getSpent, getCatCount, getCategoryNeeds, validateBid } from '@/utils/auction';
 import { formatPts, formatPct, getBarColorToken } from '@/utils/format';
 import { useTournament } from '@/context/TournamentContext';
 import { Avatar } from '@/components/Avatar/Avatar';
 import { Icon } from '@/components/Icon/Icon';
+import { ConfirmDialog } from '@/components/ConfirmDialog/ConfirmDialog';
 import { BidTeamPanel } from './BidTeamPanel';
 import styles from './AuctionTab.module.css';
 
@@ -46,14 +47,19 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
   const [currentBid,    setCurrentBid]    = useState(0);
   const [leadingTeamId, setLeadingTeamId] = useState<number | null>(null);
   const [filterCat,     setFilterCat]     = useState<Category | 'All'>('All');
+  const [search,        setSearch]        = useState('');
   const [log,           setLog]           = useState<LogEntry[]>([]);
   const [bidHistory,    setBidHistory]    = useState<BidSnapshot[]>([]);
+  const [confirmingSale, setConfirmingSale] = useState(false);
 
   const pending       = useMemo(() => players.filter((p) => p.status === 'pending'), [players]);
-  const displayPending = useMemo(
-    () => filterCat === 'All' ? pending : pending.filter((p) => p.category === filterCat),
-    [pending, filterCat]
-  );
+  const displayPending = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return pending.filter((p) =>
+      (filterCat === 'All' || p.category === filterCat) &&
+      (q === '' || p.name.toLowerCase().includes(q))
+    );
+  }, [pending, filterCat, search]);
   const catCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     config.categories.forEach((c) => { counts[c.name] = 0; });
@@ -118,10 +124,17 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
     broadcast?.broadcastBiddingCancel();
   }, [broadcast]);
 
+  // SOLD button opens a confirmation guarding against selling to the wrong team.
+  const requestSale = useCallback(() => {
+    if (!currentPlayer || !leadingTeamId) { onToast('No bid placed yet.', 'warn'); return; }
+    setConfirmingSale(true);
+  }, [currentPlayer, leadingTeamId, onToast]);
+
   const confirmSale = useCallback(() => {
     if (!currentPlayer || !leadingTeamId) { onToast('No bid placed yet.', 'warn'); return; }
     const team = teams.find((t) => t.id === leadingTeamId);
     if (!team) return;
+    setConfirmingSale(false);
     onSell(currentPlayer, leadingTeamId, currentBid);
 
     // Broadcast SOLD before resetStage (which broadcasts CANCEL)
@@ -344,7 +357,7 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
 
                 <div className={styles.actionArea}>
                   <div className={styles.actionRow}>
-                    <button className={styles.btnSold} onClick={confirmSale} disabled={!leadingTeamId}>
+                    <button className={styles.btnSold} onClick={requestSale} disabled={!leadingTeamId}>
                       <Icon name="gavel" size={14} /> SOLD{leadingTeam ? ` — ${leadingTeam.name}` : ''}
                     </button>
                     <button className={styles.btnUnsold} onClick={markUnsold}><Icon name="x-circle" size={14} /> Unsold</button>
@@ -385,9 +398,18 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
               </div>
             </div>
 
+            <input
+              className={styles.poolSearch}
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search players by name…"
+              aria-label="Search players by name"
+            />
+
             {displayPending.length === 0 ? (
               <p style={{ color: 'var(--muted)', textAlign: 'center', padding: '20px 0', fontSize: 13 }}>
-                No pending players in this filter
+                {search.trim() ? `No players match "${search.trim()}"` : 'No pending players in this filter'}
               </p>
             ) : (
               <table className={styles.poolTable} aria-label="Available players">
@@ -566,6 +588,18 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
                     );
                   })}
                 </div>
+
+                {(() => {
+                  const needs = getCategoryNeeds(team.id, soldPlayers, config);
+                  if (needs.length === 0) return null;
+                  const totalNeed = needs.reduce((sum, n) => sum + n.need, 0);
+                  const impossible = totalNeed > slotsLeft;
+                  return (
+                    <div className={`${styles.needsRow} ${impossible ? styles.needsImpossible : ''}`}>
+                      <Icon name="alert-triangle" size={10} /> Needs {needs.map((n) => `${n.need}${n.category[0]}`).join(' ')}
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}
@@ -585,6 +619,21 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
           )}
         </aside>
       </div>
+
+      {confirmingSale && currentPlayer && leadingTeam && (
+        <ConfirmDialog
+          title="Confirm Sale"
+          message={
+            <>Sell <strong style={{ color: 'var(--text)' }}>{currentPlayer.name}</strong> to{' '}
+            <strong style={{ color: leadingTeam.color }}>{leadingTeam.name || `Team ${leadingTeam.id}`}</strong> for{' '}
+            <strong style={{ color: 'var(--gold)' }}>{formatPts(currentBid)} pts</strong>?</>
+          }
+          confirmLabel="Confirm SOLD"
+          tone="success"
+          onConfirm={confirmSale}
+          onCancel={() => setConfirmingSale(false)}
+        />
+      )}
     </main>
   );
 }

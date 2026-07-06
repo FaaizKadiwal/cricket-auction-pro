@@ -353,6 +353,7 @@ export function SetupTab({ teams, onTeamsChange, players, onPlayersChange }: Set
   const { config, squadSize } = useTournament();
   const [view, setView] = useState<View>('teams');
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
+  const [playerSearch, setPlayerSearch] = useState('');
 
   // Clear editing state when switching away from players view
   useEffect(() => {
@@ -413,6 +414,11 @@ export function SetupTab({ teams, onTeamsChange, players, onPlayersChange }: Set
     return counts;
   }, [config.categories, players]);
   const totalSlots = config.totalTeams * squadSize;
+
+  const filteredPlayers = useMemo(() => {
+    const q = playerSearch.trim().toLowerCase();
+    return q === '' ? players : players.filter((p) => p.name.toLowerCase().includes(q));
+  }, [players, playerSearch]);
 
   return (
     <main className={styles.page}>
@@ -487,9 +493,19 @@ export function SetupTab({ teams, onTeamsChange, players, onPlayersChange }: Set
             onCancelEdit={handleCancelEdit}
           />
           <div className={`${styles.card} ${styles.cardScrollable}`}>
-            <div className={styles.cardTitle}>Player Pool ({players.length})</div>
+            <div className={styles.cardTitle}>
+              Player Pool ({playerSearch.trim() ? `${filteredPlayers.length}/${players.length}` : players.length})
+            </div>
+            <input
+              className={styles.poolSearch}
+              type="search"
+              value={playerSearch}
+              onChange={(e) => setPlayerSearch(e.target.value)}
+              placeholder="Search players by name…"
+              aria-label="Search players by name"
+            />
             <PlayerTable
-              players={players}
+              players={filteredPlayers}
               editingPlayerId={editingPlayer?.id ?? null}
               onRemove={handleRemovePlayer}
               onEdit={handleEditPlayer}

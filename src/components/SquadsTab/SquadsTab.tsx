@@ -1,10 +1,12 @@
-import { useMemo, memo } from 'react';
-import type { Team, SoldPlayer } from '@/types';
+import { useCallback, useMemo, useState, memo } from 'react';
+import type { Team, SoldPlayer, BidValidationResult } from '@/types';
 import { getCategoryStyle } from '@/constants/auction';
-import { getSquad, getSpent, getCatCount } from '@/utils/auction';
+import { getSquad, getSpent, getCatCount, getCategoryNeeds } from '@/utils/auction';
 import { formatPts } from '@/utils/format';
 import { useTournament } from '@/context/TournamentContext';
 import { Avatar } from '@/components/Avatar/Avatar';
+import { Icon } from '@/components/Icon/Icon';
+import { EditSaleDialog } from './EditSaleDialog';
 import styles from './SquadsTab.module.css';
 
 // ─── TeamSquadCard ────────────────────────────────────────────────────────────
@@ -12,18 +14,23 @@ import styles from './SquadsTab.module.css';
 interface TeamSquadCardProps {
   team: Team;
   soldPlayers: SoldPlayer[];
+  onEditPlayer: (sold: SoldPlayer) => void;
 }
 
-const TeamSquadCard = memo(function TeamSquadCard({ team, soldPlayers }: TeamSquadCardProps) {
+const TeamSquadCard = memo(function TeamSquadCard({ team, soldPlayers, onEditPlayer }: TeamSquadCardProps) {
   const { config, squadSize } = useTournament();
 
   const squad   = useMemo(() => getSquad(team.id, soldPlayers), [team.id, soldPlayers]);
   const spent   = useMemo(() => getSpent(team.id, soldPlayers), [team.id, soldPlayers]);
   const remain  = config.budget - spent;
+  const needs   = useMemo(() => getCategoryNeeds(team.id, soldPlayers, config), [team.id, soldPlayers, config]);
 
   // +1 for captain
   const total      = squad.length + 1;
   const isComplete = squad.length >= squadSize;
+  const slotsLeft  = squadSize - squad.length;
+  const totalNeed  = needs.reduce((sum, n) => sum + n.need, 0);
+  const needsImpossible = totalNeed > slotsLeft;
 
   return (
     <article
@@ -108,7 +115,15 @@ const TeamSquadCard = memo(function TeamSquadCard({ team, soldPlayers }: TeamSqu
                   <div className={styles.catPip} style={{ background: color }} aria-hidden="true" />
                   <span className={styles.playerNameText}>{p.name}</span>
                 </div>
-                <span className={styles.playerPrice}>{formatPts(p.finalPrice)}</span>
+                <div className={styles.playerRight}>
+                  <span className={styles.playerPrice}>{formatPts(p.finalPrice)}</span>
+                  <button
+                    className={styles.editSaleBtn}
+                    onClick={() => onEditPlayer(p)}
+                    aria-label={`Correct sale for ${p.name}`}
+                    title="Reassign team / fix price"
+                  ><Icon name="pencil" size={12} /></button>
+                </div>
               </div>
             );
           })
@@ -149,6 +164,16 @@ const TeamSquadCard = memo(function TeamSquadCard({ team, soldPlayers }: TeamSqu
             );
           })}
         </div>
+
+        {needs.length > 0 && (
+          <div className={`${styles.needsRow} ${needsImpossible ? styles.needsImpossible : ''}`} role="status">
+            <Icon name="alert-triangle" size={11} />
+            <span>
+              Needs {needs.map((n) => `${n.need} ${n.category}`).join(', ')}
+              {needsImpossible ? ' — not enough slots left' : ''}
+            </span>
+          </div>
+        )}
       </div>
     </article>
   );
@@ -159,10 +184,38 @@ const TeamSquadCard = memo(function TeamSquadCard({ team, soldPlayers }: TeamSqu
 interface SquadsTabProps {
   teams: Team[];
   soldPlayers: SoldPlayer[];
+  onEditSale: (playerId: number, newTeamId: number, newFinalPrice: number) => BidValidationResult;
+  onReturnToPool: (playerId: number) => void;
+  onToast: (msg: string, type: 'ok' | 'warn') => void;
 }
 
-export function SquadsTab({ teams, soldPlayers }: SquadsTabProps) {
+export function SquadsTab({ teams, soldPlayers, onEditSale, onReturnToPool, onToast }: SquadsTabProps) {
   const { config } = useTournament();
+  const [editingSale, setEditingSale] = useState<SoldPlayer | null>(null);
+
+  const handleEditPlayer = useCallback((sold: SoldPlayer) => setEditingSale(sold), []);
+
+  const handleReturnToPool = useCallback(() => {
+    if (!editingSale) return;
+    onReturnToPool(editingSale.id);
+    onToast(`${editingSale.name} returned to the pool for re-auction`, 'warn');
+    setEditingSale(null);
+  }, [editingSale, onReturnToPool, onToast]);
+
+  const handleSubmitEdit = useCallback(
+    (teamId: number, price: number): BidValidationResult => {
+      if (!editingSale) return { valid: false };
+      const result = onEditSale(editingSale.id, teamId, price);
+      if (result.valid) {
+        const team = teams.find((t) => t.id === teamId);
+        onToast(`${editingSale.name} → ${team?.name || `Team ${teamId}`} for ${formatPts(price)} pts`, 'ok');
+      } else if (result.reason) {
+        onToast(result.reason, 'warn');
+      }
+      return result;
+    },
+    [editingSale, onEditSale, onToast, teams]
+  );
 
   return (
     <main className={styles.page} aria-label="Final squads overview">
@@ -172,9 +225,21 @@ export function SquadsTab({ teams, soldPlayers }: SquadsTabProps) {
       </p>
       <div className={styles.grid}>
         {teams.map((team) => (
-          <TeamSquadCard key={team.id} team={team} soldPlayers={soldPlayers} />
+          <TeamSquadCard key={team.id} team={team} soldPlayers={soldPlayers} onEditPlayer={handleEditPlayer} />
         ))}
       </div>
+
+      {editingSale && (
+        <EditSaleDialog
+          sold={editingSale}
+          teams={teams}
+          soldPlayers={soldPlayers}
+          config={config}
+          onSubmit={handleSubmitEdit}
+          onReturnToPool={handleReturnToPool}
+          onClose={() => setEditingSale(null)}
+        />
+      )}
     </main>
   );
 }
