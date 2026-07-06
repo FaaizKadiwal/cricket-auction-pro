@@ -1,6 +1,7 @@
 import type {
   Category, SoldPlayer, BidCapResult, BidValidationResult, CategoryNeed, ValidationError, TournamentConfig,
 } from '@/types';
+import { getSquadSize } from '@/constants/auction';
 
 // ─── Squad Queries (pure, no config needed) ───────────────────────────────────
 
@@ -14,6 +15,22 @@ export function getSpent(teamId: number, soldPlayers: SoldPlayer[]): number {
 
 export function getCatCount(teamId: number, category: Category, soldPlayers: SoldPlayer[]): number {
   return getSquad(teamId, soldPlayers).filter((s) => s.category === category).length;
+}
+
+/** Total points committed across every team. */
+export function getTotalSpent(soldPlayers: SoldPlayer[]): number {
+  return soldPlayers.reduce((sum, s) => sum + s.finalPrice, 0);
+}
+
+/** Tally items by their category, seeding every configured category to 0. */
+export function countByCategory(
+  items: { category: Category }[],
+  config: TournamentConfig,
+): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const c of config.categories) counts[c.name] = 0;
+  for (const it of items) counts[it.category] = (counts[it.category] ?? 0) + 1;
+  return counts;
 }
 
 // ─── Bidding Cap ──────────────────────────────────────────────────────────────
@@ -33,7 +50,7 @@ export function getBidCap(
   soldPlayers: SoldPlayer[],
   config: TournamentConfig,
 ): BidCapResult {
-  const squadSize    = config.playersPerTeam - 1;
+  const squadSize    = getSquadSize(config);
   const squad        = getSquad(teamId, soldPlayers);
   const spent        = getSpent(teamId, soldPlayers);
   const remaining    = config.budget - spent;
@@ -41,6 +58,21 @@ export function getBidCap(
   const reserve      = slotsAfterWin * config.minBidReserve;
   const cap          = remaining - reserve;
   return { cap, reserve, slotsAfterWin, remaining };
+}
+
+export type CapStatus = 'safe' | 'warn' | 'danger';
+
+/**
+ * Classify a team's remaining bid headroom for colour coding. Unified so the
+ * admin sidebar, the bid panel, and the live projector always agree.
+ *   danger — capped out, no slots, or can't even afford the next raise
+ *   warn   — can afford the next raise but not two
+ *   safe   — comfortable
+ */
+export function getCapStatus(cap: number, currentBid: number, activeInc: number, slotsLeft: number): CapStatus {
+  if (cap <= 0 || slotsLeft <= 0 || cap < currentBid + activeInc) return 'danger';
+  if (cap < currentBid + activeInc * 2) return 'warn';
+  return 'safe';
 }
 
 // ─── Bid Validation ───────────────────────────────────────────────────────────
@@ -52,7 +84,7 @@ export function validateBid(
   newBid: number,
   config: TournamentConfig,
 ): BidValidationResult {
-  const squadSize = config.playersPerTeam - 1;
+  const squadSize = getSquadSize(config);
   const squad     = getSquad(teamId, soldPlayers);
 
   if (squad.length >= squadSize) {
@@ -121,7 +153,7 @@ export function validateSaleEdit(
   newFinalPrice: number,
   config: TournamentConfig,
 ): BidValidationResult {
-  const squadSize = config.playersPerTeam - 1;
+  const squadSize = getSquadSize(config);
 
   if (!Number.isFinite(newFinalPrice) || newFinalPrice < 1) {
     return { valid: false, reason: 'Price must be at least 1 pt.' };

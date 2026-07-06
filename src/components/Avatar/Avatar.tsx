@@ -1,4 +1,5 @@
 import { getInitials } from '@/utils/image';
+import { withAlpha } from '@/utils/color';
 import styles from './Avatar.module.css';
 
 interface AvatarProps {
@@ -29,8 +30,8 @@ export function Avatar({
 
   const initials = getInitials(name);
   const fontSize  = size < 32 ? size * 0.38 : size * 0.34;
-  const bg = hexToRgba(color, 0.18);
-  const border = `1px solid ${hexToRgba(color, 0.35)}`;
+  const bg = withAlpha(color, 0.18);
+  const border = `1px solid ${withAlpha(color, 0.35)}`;
 
   return (
     <div
@@ -42,17 +43,4 @@ export function Avatar({
       {initials}
     </div>
   );
-}
-
-// ─── Tiny helper ─────────────────────────────────────────────────────────────
-
-function hexToRgba(hex: string, alpha: number): string {
-  let clean = hex.replace('#', '');
-  // Expand 3-digit shorthand (#f80 → ff8800) so short hexes don't fall back to cyan.
-  if (clean.length === 3) clean = clean.split('').map((c) => c + c).join('');
-  const r = parseInt(clean.slice(0, 2), 16);
-  const g = parseInt(clean.slice(2, 4), 16);
-  const b = parseInt(clean.slice(4, 6), 16);
-  if (isNaN(r) || isNaN(g) || isNaN(b)) return `rgba(0,212,255,${alpha})`;
-  return `rgba(${r},${g},${b},${alpha})`;
 }

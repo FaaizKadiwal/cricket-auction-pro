@@ -2,13 +2,14 @@ import { useState, useMemo, useCallback } from 'react';
 import type { Team, Player, SoldPlayer, Category, DemotionResult } from '@/types';
 import type { BidIncrement } from '@/constants/auction';
 import type { BroadcastHandle } from '@/hooks/useBroadcast';
-import { getCategoryStyle, getActiveIncrement, MAX_LOG_ENTRIES } from '@/constants/auction';
-import { getBidCap, getSquad, getSpent, getCatCount, getCategoryNeeds, validateBid } from '@/utils/auction';
-import { formatPts, formatPct, getBarColorToken } from '@/utils/format';
+import { getCategoryStyle, getActiveIncrement, getTotalSlots, MAX_LOG_ENTRIES, LOW_BUDGET_THRESHOLD } from '@/constants/auction';
+import { getBidCap, getSquad, getSpent, getCapStatus, getCategoryNeeds, getTotalSpent, countByCategory, validateBid } from '@/utils/auction';
+import { formatPts, formatPct, getBarColorToken, teamLabel } from '@/utils/format';
 import { useTournament } from '@/context/TournamentContext';
 import { Avatar } from '@/components/Avatar/Avatar';
 import { Icon } from '@/components/Icon/Icon';
 import { ConfirmDialog } from '@/components/ConfirmDialog/ConfirmDialog';
+import { CategoryPills } from '@/components/CategoryPills/CategoryPills';
 import { BidTeamPanel } from './BidTeamPanel';
 import styles from './AuctionTab.module.css';
 
@@ -60,17 +61,12 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
       (q === '' || p.name.toLowerCase().includes(q))
     );
   }, [pending, filterCat, search]);
-  const catCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    config.categories.forEach((c) => { counts[c.name] = 0; });
-    pending.forEach((p) => { counts[p.category] = (counts[p.category] ?? 0) + 1; });
-    return counts;
-  }, [pending, config.categories]);
+  const catCounts   = useMemo(() => countByCategory(pending, config), [pending, config]);
 
-  const totalSpent  = useMemo(() => soldPlayers.reduce((s, x) => s + x.finalPrice, 0), [soldPlayers]);
+  const totalSpent  = useMemo(() => getTotalSpent(soldPlayers), [soldPlayers]);
   const leadingTeam = useMemo(() => teams.find((t) => t.id === leadingTeamId) ?? null, [teams, leadingTeamId]);
   const unsold      = useMemo(() => players.filter((p) => p.status === 'unsold'), [players]);
-  const totalSlots  = config.totalTeams * squadSize;
+  const totalSlots  = getTotalSlots(config);
 
   const startBidding = useCallback((player: Player) => {
     setCurrentPlayer(player);
@@ -496,9 +492,10 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
               : { cap: 0, reserve: 0, slotsAfterWin: 0 };
 
             const activeInc = currentPlayer ? getActiveIncrement(currentBid) : 0;
+            const capStatus = currentPlayer ? getCapStatus(cap, currentBid, activeInc, slotsLeft) : 'safe';
             const capCls = !currentPlayer ? ''
-              : cap <= 0 ? styles.capDanger
-              : cap < currentBid + activeInc ? styles.capWarn
+              : capStatus === 'danger' ? styles.capDanger
+              : capStatus === 'warn' ? styles.capWarn
               : styles.capSafe;
 
             return (
@@ -506,7 +503,7 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
                 key={team.id}
                 className={`${styles.sbTeam} ${isLeading ? styles.sbTeamLeading : ''}`}
                 style={{ borderLeftColor: isLeading ? team.color : 'var(--border)' }}
-                aria-label={`${team.name}: ${formatPts(remaining)} pts remaining`}
+                aria-label={`${teamLabel(team)}: ${formatPts(remaining)} pts remaining`}
               >
                 {/* Team header with logo */}
                 <div className={styles.sbTeamHeader}>
@@ -514,7 +511,7 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
                   <div className={styles.sbTeamInfo}>
                     {isLeading && <div className={styles.sbLeadTag} style={{ color: team.color }}><Icon name="trophy" size={11} /> Leader</div>}
                     <div className={styles.sbTeamName} style={{ color: team.color }}>
-                      {team.name || `Team ${team.id}`}
+                      {teamLabel(team)}
                     </div>
                     {team.captain && (
                       <div className={styles.sbCaptain} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -528,7 +525,7 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
                 {/* Budget */}
                 <div className={styles.sbBudgetRow}>
                   <div>
-                    <div className={styles.sbPts} style={{ color: remaining < 300 ? 'var(--danger)' : 'var(--text)' }}>
+                    <div className={styles.sbPts} style={{ color: remaining < LOW_BUDGET_THRESHOLD ? 'var(--danger)' : 'var(--text)' }}>
                       {formatPts(remaining)} pts
                     </div>
                     <div style={{ fontSize: 10, color: 'var(--muted)' }}>remaining</div>
@@ -550,7 +547,7 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
                     aria-valuemin={0}
                     aria-valuemax={100}
                     aria-valuetext={`${used}% of budget spent`}
-                    aria-label={`${team.name || `Team ${team.id}`} budget usage`}
+                    aria-label={`${teamLabel(team)} budget usage`}
                   />
                 </div>
 
@@ -571,22 +568,7 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
                 )}
 
                 <div className={styles.catBadges}>
-                  {config.categories.map((catDef) => {
-                    const cnt = getCatCount(team.id, catDef.name, soldPlayers);
-                    return (
-                      <span
-                        key={catDef.name}
-                        className={styles.catBadge}
-                        style={{
-                          background: `${catDef.color}18`,
-                          color: catDef.color,
-                          border: `1px solid ${catDef.color}35`,
-                        }}
-                      >
-                        {catDef.name[0]}: {cnt}{catDef.max > 0 ? `/${catDef.max}` : ''}
-                      </span>
-                    );
-                  })}
+                  <CategoryPills teamId={team.id} soldPlayers={soldPlayers} config={config} />
                 </div>
 
                 {(() => {
@@ -625,7 +607,7 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
           title="Confirm Sale"
           message={
             <>Sell <strong style={{ color: 'var(--text)' }}>{currentPlayer.name}</strong> to{' '}
-            <strong style={{ color: leadingTeam.color }}>{leadingTeam.name || `Team ${leadingTeam.id}`}</strong> for{' '}
+            <strong style={{ color: leadingTeam.color }}>{teamLabel(leadingTeam)}</strong> for{' '}
             <strong style={{ color: 'var(--gold)' }}>{formatPts(currentBid)} pts</strong>?</>
           }
           confirmLabel="Confirm SOLD"

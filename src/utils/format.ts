@@ -1,8 +1,15 @@
+import type { Team } from '@/types';
+
 /**
  * Format a number as locale-aware integer (e.g. 3000 → "3,000")
  */
 export function formatPts(n: number): string {
   return Math.round(n).toLocaleString();
+}
+
+/** Display label for a team, falling back to "Team {id}" when unnamed. Single source for the fallback. */
+export function teamLabel(team: Pick<Team, 'name' | 'id'>): string {
+  return team.name.trim() || `Team ${team.id}`;
 }
 
 /**

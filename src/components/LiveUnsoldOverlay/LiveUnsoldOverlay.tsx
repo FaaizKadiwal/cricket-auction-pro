@@ -1,6 +1,8 @@
 import type { Player, TournamentConfig } from '@/types';
 import { getCategoryStyle } from '@/constants/auction';
 import { Avatar } from '@/components/Avatar/Avatar';
+import { Icon } from '@/components/Icon/Icon';
+import { withAlpha } from '@/utils/color';
 import styles from './LiveUnsoldOverlay.module.css';
 
 interface LiveUnsoldOverlayProps {
@@ -25,16 +27,14 @@ export function LiveUnsoldOverlay({ player, demoted, newCategory, halvedInPlace,
             <Avatar src={player.photoBase64} name={player.name} size={120} color="var(--warning)" />
           </div>
           <div className={styles.demotedIcon} aria-hidden="true">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 5v14M5 12l7 7 7-7" />
-            </svg>
+            <Icon name="arrow-down" size={36} />
           </div>
           <div className={styles.demotedText}>DEMOTED</div>
           <div className={styles.playerName}>{player.name}</div>
           <div className={styles.dividerAmber} />
           <div
             className={styles.newCat}
-            style={{ '--cat-color': newCatStyle.color, '--cat-bg': newCatStyle.bg, '--cat-border': newCatStyle.color + '40' } as React.CSSProperties}
+            style={{ '--cat-color': newCatStyle.color, '--cat-bg': newCatStyle.bg, '--cat-border': withAlpha(newCatStyle.color, 0.25) } as React.CSSProperties}
           >
             Moved to {newCategory} Category
           </div>
@@ -53,9 +53,7 @@ export function LiveUnsoldOverlay({ player, demoted, newCategory, halvedInPlace,
             <Avatar src={player.photoBase64} name={player.name} size={120} color="var(--warning)" />
           </div>
           <div className={styles.demotedIcon} aria-hidden="true">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 5v14M5 12l7 7 7-7" />
-            </svg>
+            <Icon name="arrow-down" size={36} />
           </div>
           <div className={styles.demotedText}>BASE PRICE HALVED</div>
           <div className={styles.playerName}>{player.name}</div>
@@ -89,7 +87,7 @@ export function LiveUnsoldOverlay({ player, demoted, newCategory, halvedInPlace,
         <div className={styles.metaRow}>
           <span
             className={styles.catBadge}
-            style={{ '--cat-color': catStyle.color, '--cat-bg': catStyle.bg, '--cat-border': catStyle.color + '40' } as React.CSSProperties}
+            style={{ '--cat-color': catStyle.color, '--cat-bg': catStyle.bg, '--cat-border': withAlpha(catStyle.color, 0.25) } as React.CSSProperties}
           >
             {player.category}
           </span>

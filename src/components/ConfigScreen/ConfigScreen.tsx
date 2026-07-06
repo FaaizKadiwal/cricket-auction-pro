@@ -1,8 +1,9 @@
 import { useState, Fragment } from 'react';
 import type { TournamentConfig, CategoryDefinition, ValidationError, Player } from '@/types';
-import { DEFAULT_CONFIG } from '@/constants/auction';
+import { DEFAULT_CONFIG, getSquadSize, getTotalSlots } from '@/constants/auction';
 import { validateConfig } from '@/utils/auction';
 import { formatPts } from '@/utils/format';
+import { darken } from '@/utils/color';
 import { ImageUpload } from '@/components/ImageUpload/ImageUpload';
 import { Icon } from '@/components/Icon/Icon';
 import styles from './ConfigScreen.module.css';
@@ -43,7 +44,7 @@ interface Step1Props {
 }
 
 function Step1({ draft, onChange, errors, lockStructural }: Step1Props) {
-  const squadSize = draft.playersPerTeam - 1;
+  const squadSize = getSquadSize(draft);
 
   return (
     <div>
@@ -175,15 +176,7 @@ function Step1({ draft, onChange, errors, lockStructural }: Step1Props) {
   );
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/** Derive a dark bgColor from a hex color for badge backgrounds */
-function deriveBgColor(hex: string): string {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `#${Math.round(r * 0.16).toString(16).padStart(2, '0')}${Math.round(g * 0.16).toString(16).padStart(2, '0')}${Math.round(b * 0.16).toString(16).padStart(2, '0')}`;
-}
+// ─── Category Helpers ─────────────────────────────────────────────────────────
 
 function blankCategory(): CategoryDefinition {
   return { name: '', color: '#888888', bgColor: '#151515', min: 0, max: 0 };
@@ -200,15 +193,15 @@ interface Step2Props {
 }
 
 function Step2({ draft, onChange, errors, setErrors, existingPlayers }: Step2Props) {
-  const squadSize = draft.playersPerTeam - 1;
+  const squadSize = getSquadSize(draft);
   const cats = draft.categories;
 
   function updateCat(index: number, partial: Partial<CategoryDefinition>) {
     const updated = cats.map((c, i) => {
       if (i !== index) return c;
       const merged = { ...c, ...partial };
-      // Auto-derive bgColor when color changes
-      if (partial.color) merged.bgColor = deriveBgColor(partial.color);
+      // Auto-derive a dark badge bgColor when the colour changes
+      if (partial.color) merged.bgColor = darken(partial.color, 0.16);
       return merged;
     });
     onChange({ categories: updated });
@@ -369,8 +362,8 @@ interface Step3Props {
 }
 
 function Step3({ draft, mode }: Step3Props) {
-  const squadSize  = draft.playersPerTeam - 1;
-  const totalSlots = draft.totalTeams * squadSize;
+  const squadSize  = getSquadSize(draft);
+  const totalSlots = getTotalSlots(draft);
   const totalPot   = draft.totalTeams * draft.budget;
 
   const summaryItems = [

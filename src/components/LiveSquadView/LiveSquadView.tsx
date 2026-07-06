@@ -1,9 +1,10 @@
 import { useMemo, memo } from 'react';
 import type { TournamentConfig, Team, SoldPlayer } from '@/types';
 import { getCategoryStyle, getSquadSize } from '@/constants/auction';
-import { getSquad, getSpent, getCatCount } from '@/utils/auction';
-import { formatPts } from '@/utils/format';
+import { getSquad, getSpent } from '@/utils/auction';
+import { formatPts, teamLabel } from '@/utils/format';
 import { Avatar } from '@/components/Avatar/Avatar';
+import { CategoryPills } from '@/components/CategoryPills/CategoryPills';
 import styles from './LiveSquadView.module.css';
 
 interface LiveSquadViewProps {
@@ -49,7 +50,7 @@ const TeamCard = memo(function TeamCard({ team, soldPlayers, config, squadSize }
       <div className={styles.cardHeader}>
         <Avatar src={team.logoBase64} name={team.name} size={40} color={team.color} square />
         <div className={styles.headerInfo}>
-          <span className={styles.teamName} style={{ color: team.color }}>{team.name || `Team ${team.id}`}</span>
+          <span className={styles.teamName} style={{ color: team.color }}>{teamLabel(team)}</span>
           {team.captain && (
             <span className={styles.captain}>
               <Avatar src={team.captainBase64} name={team.captain} size={16} color={team.color} />
@@ -88,14 +89,7 @@ const TeamCard = memo(function TeamCard({ team, soldPlayers, config, squadSize }
           <span className={styles.footerValue} style={{ color: 'var(--success)' }}>{formatPts(remaining)}</span>
         </div>
         <div className={styles.catPills}>
-          {config.categories.map((catDef) => {
-            const cnt = getCatCount(team.id, catDef.name, soldPlayers);
-            return (
-              <span key={catDef.name} className={styles.catPill} style={{ color: catDef.color, borderColor: `${catDef.color}40` }}>
-                {catDef.name[0]}: {cnt}{catDef.max > 0 ? `/${catDef.max}` : ''}
-              </span>
-            );
-          })}
+          <CategoryPills teamId={team.id} soldPlayers={soldPlayers} config={config} />
         </div>
       </div>
     </div>

@@ -9,6 +9,7 @@ import { TournamentProvider } from '@/context/TournamentContext';
 import { ConfigScreen } from '@/components/ConfigScreen/ConfigScreen';
 import { Header } from '@/components/Header/Header';
 import { ToastContainer } from '@/components/Toast/Toast';
+import { ConfirmDialog } from '@/components/ConfirmDialog/ConfirmDialog';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import styles from '@/App.module.css';
 import { SetupTab } from '@/components/SetupTab/SetupTab';
@@ -42,6 +43,7 @@ export default function App() {
 
   const { toasts, exitingIds, showToast, dismissToast } = useToast(5000);
   const [showConfigEditor, setShowConfigEditor] = useState(false);
+  const [confirmingReset, setConfirmingReset] = useState(false);
 
   // Warn the operator if a localStorage write fails (throttled — a burst of
   // failing writes across keys should surface a single warning, not a flood).
@@ -91,11 +93,8 @@ export default function App() {
     [setConfig, setTeams, setPlayers, setSoldPlayers, setActiveTab]
   );
 
-  const handleReset = useCallback(() => {
-    const confirmed = window.confirm(
-      'Reset the entire tournament? All teams, players, and auction progress will be cleared.'
-    );
-    if (!confirmed) return;
+  const confirmReset = useCallback(() => {
+    setConfirmingReset(false);
     setConfig(null);
     setTeams([]);
     setPlayers([]);
@@ -310,7 +309,7 @@ export default function App() {
           activeTab={activeTab}
           onTabChange={setActiveTab}
           soldPlayers={soldPlayers}
-          onReset={handleReset}
+          onReset={() => setConfirmingReset(true)}
           onEditConfig={() => setShowConfigEditor(true)}
         />
 
@@ -366,6 +365,17 @@ export default function App() {
           onCancel={() => setShowConfigEditor(false)}
           hasSoldPlayers={soldPlayers.length > 0}
           existingPlayers={players}
+        />
+      )}
+
+      {confirmingReset && (
+        <ConfirmDialog
+          title="Reset entire tournament?"
+          message="This permanently clears all teams, players, and auction progress and returns to the setup wizard. This cannot be undone."
+          confirmLabel="Reset everything"
+          tone="danger"
+          onConfirm={confirmReset}
+          onCancel={() => setConfirmingReset(false)}
         />
       )}
     </TournamentProvider>

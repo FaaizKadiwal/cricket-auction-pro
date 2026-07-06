@@ -1,11 +1,12 @@
 import { useCallback, useMemo, useState, memo } from 'react';
 import type { Team, SoldPlayer, BidValidationResult } from '@/types';
 import { getCategoryStyle } from '@/constants/auction';
-import { getSquad, getSpent, getCatCount, getCategoryNeeds } from '@/utils/auction';
-import { formatPts } from '@/utils/format';
+import { getSquad, getSpent, getCategoryNeeds } from '@/utils/auction';
+import { formatPts, teamLabel } from '@/utils/format';
 import { useTournament } from '@/context/TournamentContext';
 import { Avatar } from '@/components/Avatar/Avatar';
 import { Icon } from '@/components/Icon/Icon';
+import { CategoryPills } from '@/components/CategoryPills/CategoryPills';
 import { EditSaleDialog } from './EditSaleDialog';
 import styles from './SquadsTab.module.css';
 
@@ -35,7 +36,7 @@ const TeamSquadCard = memo(function TeamSquadCard({ team, soldPlayers, onEditPla
   return (
     <article
       className={styles.card}
-      aria-label={`${team.name || `Team ${team.id}`} squad`}
+      aria-label={`${teamLabel(team)} squad`}
       style={{ borderTop: `3px solid ${team.color}` }}
     >
       {/* Header */}
@@ -52,7 +53,7 @@ const TeamSquadCard = memo(function TeamSquadCard({ team, soldPlayers, onEditPla
 
           <div className={styles.teamText}>
             <div className={styles.teamName} style={{ color: team.color }}>
-              {team.name || `Team ${team.id}`}
+              {teamLabel(team)}
             </div>
 
             {/* Captain row */}
@@ -147,22 +148,7 @@ const TeamSquadCard = memo(function TeamSquadCard({ team, soldPlayers, onEditPla
 
         {/* Category breakdown */}
         <div className={styles.catRow}>
-          {config.categories.map((catDef) => {
-            const cnt = getCatCount(team.id, catDef.name, soldPlayers);
-            return (
-              <span
-                key={catDef.name}
-                className={styles.catPill}
-                style={{
-                  background: `${catDef.color}18`,
-                  color:      catDef.color,
-                  border:     `1px solid ${catDef.color}35`,
-                }}
-              >
-                {catDef.name[0]}: {cnt}{catDef.max > 0 ? `/${catDef.max}` : ''}
-              </span>
-            );
-          })}
+          <CategoryPills teamId={team.id} soldPlayers={soldPlayers} config={config} />
         </div>
 
         {needs.length > 0 && (
@@ -208,7 +194,7 @@ export function SquadsTab({ teams, soldPlayers, onEditSale, onReturnToPool, onTo
       const result = onEditSale(editingSale.id, teamId, price);
       if (result.valid) {
         const team = teams.find((t) => t.id === teamId);
-        onToast(`${editingSale.name} → ${team?.name || `Team ${teamId}`} for ${formatPts(price)} pts`, 'ok');
+        onToast(`${editingSale.name} → ${team ? teamLabel(team) : `Team ${teamId}`} for ${formatPts(price)} pts`, 'ok');
       } else if (result.reason) {
         onToast(result.reason, 'warn');
       }

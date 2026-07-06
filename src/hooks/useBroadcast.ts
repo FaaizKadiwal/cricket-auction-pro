@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useCallback } from 'react';
 import type { TournamentConfig, Team, Player, SoldPlayer, Category } from '@/types';
 import type {
   LiveMessage, SyncStateMessage, BiddingPayload, BidLogEntry, SoldPayload, ViewerPhase, ChannelMessage,
@@ -146,9 +146,15 @@ export function useBroadcast({ config, teams, players, soldPlayers }: UseBroadca
     send({ type: 'BIDDING_SYNC', bidding });
   }, [send]);
 
-  return {
+  // Stable handle — every method is a stable useCallback, so consumers (and the
+  // memo()'d BidTeamPanel) don't churn when App re-renders for unrelated reasons.
+  return useMemo(() => ({
     broadcastBiddingStart, broadcastBidUpdate, broadcastSold, broadcastUnsold,
     broadcastBiddingCancel, broadcastShowSquads, broadcastShowIdle, broadcastUndoSale,
     broadcastBiddingSync,
-  };
+  }), [
+    broadcastBiddingStart, broadcastBidUpdate, broadcastSold, broadcastUnsold,
+    broadcastBiddingCancel, broadcastShowSquads, broadcastShowIdle, broadcastUndoSale,
+    broadcastBiddingSync,
+  ]);
 }

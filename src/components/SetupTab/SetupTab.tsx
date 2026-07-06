@@ -1,7 +1,7 @@
 import { useState, useCallback, useId, useMemo, useEffect } from 'react';
 import type { Team, Player, Category, ValidationError } from '@/types';
-import { getCategoryStyle, getCategoryNames } from '@/constants/auction';
-import { validatePlayerForm } from '@/utils/auction';
+import { getCategoryStyle, getCategoryNames, getTotalSlots } from '@/constants/auction';
+import { validatePlayerForm, countByCategory } from '@/utils/auction';
 import { formatPts } from '@/utils/format';
 import { useTournament } from '@/context/TournamentContext';
 import { ImageUpload } from '@/components/ImageUpload/ImageUpload';
@@ -350,7 +350,7 @@ interface SetupTabProps {
 type View = 'teams' | 'players';
 
 export function SetupTab({ teams, onTeamsChange, players, onPlayersChange }: SetupTabProps) {
-  const { config, squadSize } = useTournament();
+  const { config } = useTournament();
   const [view, setView] = useState<View>('teams');
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [playerSearch, setPlayerSearch] = useState('');
@@ -407,13 +407,8 @@ export function SetupTab({ teams, onTeamsChange, players, onPlayersChange }: Set
   }, []);
 
   // Dynamic category counts
-  const catCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    config.categories.forEach((c) => { counts[c.name] = 0; });
-    players.forEach((p) => { counts[p.category] = (counts[p.category] ?? 0) + 1; });
-    return counts;
-  }, [config.categories, players]);
-  const totalSlots = config.totalTeams * squadSize;
+  const catCounts = useMemo(() => countByCategory(players, config), [config, players]);
+  const totalSlots = getTotalSlots(config);
 
   const filteredPlayers = useMemo(() => {
     const q = playerSearch.trim().toLowerCase();

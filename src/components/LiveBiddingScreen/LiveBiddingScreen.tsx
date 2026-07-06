@@ -2,8 +2,8 @@ import { useMemo, useState, useEffect, useRef } from 'react';
 import type { TournamentConfig, Team, SoldPlayer } from '@/types';
 import type { BiddingPayload } from '@/types/live';
 import { getCategoryStyle, getActiveIncrement, getSquadSize } from '@/constants/auction';
-import { formatPts } from '@/utils/format';
-import { getBidCap, getSquad, getSpent } from '@/utils/auction';
+import { formatPts, teamLabel } from '@/utils/format';
+import { getBidCap, getSquad, getSpent, getCapStatus } from '@/utils/auction';
 import { Avatar } from '@/components/Avatar/Avatar';
 import styles from './LiveBiddingScreen.module.css';
 
@@ -70,9 +70,7 @@ export function LiveBiddingScreen({ bidding, teams, soldPlayers, config }: LiveB
       const bidInfo = teamBidMap.get(team.id) ?? null;
 
       const activeInc = getActiveIncrement(currentBid);
-      let capStatus: 'safe' | 'warn' | 'danger' = 'safe';
-      if (cap <= 0 || slotsLeft <= 0) capStatus = 'danger';
-      else if (cap < currentBid + activeInc) capStatus = 'warn';
+      const capStatus = getCapStatus(cap, currentBid, activeInc, slotsLeft);
 
       return { team, remaining, slotsLeft, cap, isLeading, capStatus, bidInfo };
     });
@@ -141,7 +139,7 @@ export function LiveBiddingScreen({ bidding, teams, soldPlayers, config }: LiveB
               <div className={styles.leadingInfo}>
                 <span className={styles.leadingLabel}>LEADING BID</span>
                 <span className={styles.leadingTeamName} style={{ color: leadingTeam.color }}>
-                  {leadingTeam.name}
+                  {teamLabel(leadingTeam)}
                 </span>
               </div>
             </div>
@@ -192,7 +190,7 @@ export function LiveBiddingScreen({ bidding, teams, soldPlayers, config }: LiveB
                   <Avatar src={team.logoBase64} name={team.name} size={44} color={team.color} square />
                   <div className={styles.cardNameBlock}>
                     <span className={styles.cardTeamName} style={{ color: isLeading ? team.color : 'var(--text)' }}>
-                      {team.name || `Team ${team.id}`}
+                      {teamLabel(team)}
                     </span>
                     {isLeading && (
                       <span className={styles.leadBadge} style={{ color: team.color, borderColor: `${team.color}60` }}>LEADING</span>

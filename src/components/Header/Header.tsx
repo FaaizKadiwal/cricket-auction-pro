@@ -1,6 +1,7 @@
 import type { TabId, SoldPlayer } from '@/types';
-import { TABS } from '@/constants/auction';
+import { TABS, getTotalSlots } from '@/constants/auction';
 import { formatPts } from '@/utils/format';
+import { getTotalSpent } from '@/utils/auction';
 import { useTournament } from '@/context/TournamentContext';
 import { Icon } from '@/components/Icon/Icon';
 import styles from './Header.module.css';
@@ -14,9 +15,14 @@ interface HeaderProps {
 }
 
 export function Header({ activeTab, onTabChange, soldPlayers, onReset, onEditConfig }: HeaderProps) {
-  const { config, squadSize } = useTournament();
-  const totalSpent = soldPlayers.reduce((sum, s) => sum + s.finalPrice, 0);
-  const totalPlayers = config.totalTeams * squadSize;
+  const { config } = useTournament();
+  const totalSpent = getTotalSpent(soldPlayers);
+  const totalPlayers = getTotalSlots(config);
+
+  // Open the read-only projector view in a second window (same origin, ?mode=live).
+  const handleOpenLive = () => {
+    window.open(`${window.location.pathname}?mode=live`, 'cap_live_viewer');
+  };
 
   return (
     <header className={styles.header} role="banner">
@@ -60,12 +66,18 @@ export function Header({ activeTab, onTabChange, soldPlayers, onReset, onEditCon
             {formatPts(totalSpent)} pts
           </span>
         </div>
-        <div className={styles.divider} aria-hidden="true" />
+      </div>
+
+      {/* Actions — kept visible at every width (unlike the stats above) */}
+      <div className={styles.headerActions}>
+        <button className={styles.liveBtn} onClick={handleOpenLive} aria-label="Open the live viewer in a new window">
+          <Icon name="monitor" size={13} /> Live Viewer
+        </button>
         <button className={styles.editConfigBtn} onClick={onEditConfig} aria-label="Edit tournament settings">
           <Icon name="pencil" size={13} /> Edit Config
         </button>
-        <button className={styles.resetBtn} onClick={onReset} aria-label="Reset tournament configuration">
-          <Icon name="refresh" size={13} /> Reconfigure
+        <button className={styles.resetBtn} onClick={onReset} aria-label="Reset the entire tournament">
+          <Icon name="refresh" size={13} /> Reset
         </button>
       </div>
     </header>

@@ -85,6 +85,34 @@
 .statValue { font-family: var(--font-mono); font-size: 14px; font-weight: 700; }
 .divider   { width: 1px; height: 28px; background: var(--border); }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.liveBtn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--success) 30%, transparent);
+  background: color-mix(in srgb, var(--success) 8%, transparent);
+  color: var(--success);
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.liveBtn:hover {
+  background: color-mix(in srgb, var(--success) 18%, transparent);
+  border-color: var(--success);
+}
+
 .editConfigBtn {
   padding: 6px 12px;
   border-radius: 6px;

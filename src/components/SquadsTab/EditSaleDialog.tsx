@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import type { Team, SoldPlayer, TournamentConfig, BidValidationResult } from '@/types';
-import { getCategoryStyle } from '@/constants/auction';
+import { getCategoryStyle, getSquadSize } from '@/constants/auction';
 import { validateSaleEdit } from '@/utils/auction';
-import { formatPts } from '@/utils/format';
+import { formatPts, teamLabel } from '@/utils/format';
 import { Avatar } from '@/components/Avatar/Avatar';
 import { Icon } from '@/components/Icon/Icon';
 import styles from './EditSaleDialog.module.css';
@@ -26,7 +26,7 @@ export function EditSaleDialog({ sold, teams, soldPlayers, config, onSubmit, onR
 
   const price     = Number(priceStr);
   const catStyle  = getCategoryStyle(config, sold.category);
-  const squadSize = config.playersPerTeam - 1;
+  const squadSize = getSquadSize(config);
   const targetTeam = teams.find((t) => t.id === teamId);
 
   // Live validation — same rule the commit uses, so the preview never lies.
@@ -76,7 +76,7 @@ export function EditSaleDialog({ sold, teams, soldPlayers, config, onSubmit, onR
           <select className={styles.select} value={teamId} onChange={(e) => setTeamId(Number(e.target.value))}>
             {teams.map((t) => (
               <option key={t.id} value={t.id}>
-                {t.name || `Team ${t.id}`}{t.id === sold.teamId ? ' (current)' : ''}
+                {teamLabel(t)}{t.id === sold.teamId ? ' (current)' : ''}
               </option>
             ))}
           </select>
@@ -109,7 +109,7 @@ export function EditSaleDialog({ sold, teams, soldPlayers, config, onSubmit, onR
               <p className={styles.error} role="alert"><Icon name="alert-triangle" size={12} /> {validation.reason}</p>
             ) : (
               <p className={styles.preview}>
-                {(targetTeam?.name || `Team ${teamId}`)}: {preview.squadCount}/{squadSize} players · {formatPts(preview.remainingAfter)} pts left after
+                {(targetTeam ? teamLabel(targetTeam) : `Team ${teamId}`)}: {preview.squadCount}/{squadSize} players · {formatPts(preview.remainingAfter)} pts left after
               </p>
             )}
 

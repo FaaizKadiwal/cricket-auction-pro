@@ -2,8 +2,8 @@ import { memo } from 'react';
 import type { Team, SoldPlayer, Category } from '@/types';
 import type { BidIncrement } from '@/constants/auction';
 import { getActiveIncrement } from '@/constants/auction';
-import { getBidCap, getSquad, getCatCount } from '@/utils/auction';
-import { formatPts } from '@/utils/format';
+import { getBidCap, getSquad, getCatCount, getCapStatus } from '@/utils/auction';
+import { formatPts, teamLabel } from '@/utils/format';
 import { Avatar } from '@/components/Avatar/Avatar';
 import { Icon } from '@/components/Icon/Icon';
 import { useTournament } from '@/context/TournamentContext';
@@ -41,17 +41,16 @@ export const BidTeamPanel = memo(function BidTeamPanel({
 
   const activeInc = getActiveIncrement(currentBid);
 
-  function capClass() {
-    if (cap < currentBid + activeInc) return styles.capDanger;
-    if (cap < currentBid + activeInc * 2) return styles.capWarn;
-    return styles.capSafe;
-  }
+  const capStatus = getCapStatus(cap, currentBid, activeInc, slotsLeft);
+  const capClass = capStatus === 'danger' ? styles.capDanger
+    : capStatus === 'warn' ? styles.capWarn
+    : styles.capSafe;
 
   return (
     <div
       className={`${styles.panel} ${isLeading ? styles.panelLeading : ''} ${isBlocked ? styles.panelBlocked : ''}`}
       style={{ '--lead-color': team.color } as React.CSSProperties}
-      aria-label={`${team.name} bid panel`}
+      aria-label={`${teamLabel(team)} bid panel`}
     >
       {/* Header */}
       <div className={styles.header}>
@@ -59,7 +58,7 @@ export const BidTeamPanel = memo(function BidTeamPanel({
         <div className={styles.nameBlock}>
           {isLeading && <div className={styles.leadTag} style={{ color: team.color }}><Icon name="trophy" size={10} /> Leading</div>}
           <div className={styles.teamName} style={{ color: team.color }}>
-            {team.name || `Team ${team.id}`}
+            {teamLabel(team)}
           </div>
         </div>
       </div>
@@ -71,14 +70,14 @@ export const BidTeamPanel = memo(function BidTeamPanel({
         ) : (
           <>
             <Icon name="lock" size={10} style={{ color: 'var(--muted)', marginRight: 2 }} />
-            <span className={`${styles.capValue} ${capClass()}`}>{formatPts(cap)}</span>
+            <span className={`${styles.capValue} ${capClass}`}>{formatPts(cap)}</span>
             <span style={{ color: 'var(--muted)', fontSize: 9 }}> pts · {slotsLeft}sl</span>
           </>
         )}
       </div>
 
       {/* Increment buttons */}
-      <div className={styles.btnRow} role="group" aria-label={`Bid for ${team.name}`}>
+      <div className={styles.btnRow} role="group" aria-label={`Bid for ${teamLabel(team)}`}>
         <button
           className={`${styles.incBtn} ${styles.basePickBtn}`}
           disabled={isBlocked || leadingTeamId !== null}

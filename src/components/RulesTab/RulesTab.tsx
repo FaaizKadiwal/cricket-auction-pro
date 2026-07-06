@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { getTotalSlots, describeBidTiers } from '@/constants/auction';
 import { useTournament } from '@/context/TournamentContext';
 import { formatPts } from '@/utils/format';
 import { Icon, type IconName } from '@/components/Icon/Icon';
@@ -18,7 +19,7 @@ interface RuleSection {
 
 export function RulesTab() {
   const { config, squadSize } = useTournament();
-  const totalSlots = config.totalTeams * squadSize;
+  const totalSlots = getTotalSlots(config);
   const [downloading, setDownloading] = useState(false);
 
   const handleDownload = async () => {
@@ -84,10 +85,7 @@ export function RulesTab() {
         { text: 'The Auctioneer announces the player and their base price. Bidding opens immediately at that price.' },
         { text: 'A captain may pick a player at the base price. This is known as the "base pick".' },
         { text: 'After the base pick, captains raise bids using a single increment that scales with the current bid:' },
-        { text: 'Below 400 pts → +20 per bid.', hl: true },
-        { text: '400 – 999 pts → +50 per bid.', hl: true },
-        { text: '1,000 – 1,999 pts → +100 per bid.', hl: true },
-        { text: '2,000+ pts → +200 per bid.', hl: true },
+        ...describeBidTiers().map((line) => ({ text: `${line} per bid.`, hl: true })),
         { text: "The highest active bidder when the Auctioneer calls 'SOLD' wins the player at that final price." },
         { text: 'If no bids are placed, the player is declared UNSOLD and may re-enter a Flash Round.' },
       ],

@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { TournamentConfig, Team, SoldPlayer } from '@/types';
-import { getSquadSize } from '@/constants/auction';
+import { getTotalSlots } from '@/constants/auction';
+import { getTotalSpent } from '@/utils/auction';
 import styles from './LiveIdleScreen.module.css';
 
 interface LiveIdleScreenProps {
@@ -10,14 +11,13 @@ interface LiveIdleScreenProps {
 }
 
 export function LiveIdleScreen({ config, soldPlayers, teams }: LiveIdleScreenProps) {
-  const squadSize = getSquadSize(config);
-  const totalSlots = config.totalTeams * squadSize;
+  const totalSlots = getTotalSlots(config);
 
   const stats = useMemo(() => ({
     sold: soldPlayers.length,
     total: totalSlots,
     teamCount: teams.length,
-    totalSpent: soldPlayers.reduce((s, p) => s + p.finalPrice, 0),
+    totalSpent: getTotalSpent(soldPlayers),
   }), [soldPlayers, totalSlots, teams.length]);
 
   return (

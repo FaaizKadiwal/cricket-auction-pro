@@ -28,6 +28,11 @@ export function getSquadSize(config: TournamentConfig): number {
   return config.playersPerTeam - 1;
 }
 
+/** Total auctionable slots across the tournament = teams × squad size. */
+export function getTotalSlots(config: TournamentConfig): number {
+  return config.totalTeams * getSquadSize(config);
+}
+
 // ─── Category Helpers ────────────────────────────────────────────────────────
 
 /** Look up a CategoryDefinition by its name from config. */
@@ -75,6 +80,21 @@ export function getActiveIncrement(currentBid: number): BidIncrement {
   return 200;
 }
 
+/** Human-readable increment-tier lines derived from BID_TIERS (for the rules page/PDF). */
+export function describeBidTiers(): string[] {
+  const lines: string[] = [];
+  let lower = 0;
+  for (const tier of BID_TIERS) {
+    if (tier.upto === Infinity) {
+      lines.push(`${lower.toLocaleString()}+ pts → +${tier.inc}`);
+    } else {
+      lines.push(`${lower.toLocaleString()}–${(tier.upto - 1).toLocaleString()} pts → +${tier.inc}`);
+      lower = tier.upto;
+    }
+  }
+  return lines;
+}
+
 // ─── Default Team Colors ──────────────────────────────────────────────────────
 
 export const DEFAULT_TEAM_COLORS: string[] = [
@@ -87,13 +107,13 @@ export const DEFAULT_TEAM_COLORS: string[] = [
   '#ff006e', '#fb5607',
 ];
 
-// ─── Live Viewer Channel ──────────────────────────────────────────────────
-
 // ─── Magic Number Constants ─────────────────────────────────────────────────
 
 export const MAX_LOG_ENTRIES = 60;
 export const MAX_VISIBLE_BIDS = 8;
 export const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10 MB
+/** Below this many remaining points a team's budget is shown in the danger colour. */
+export const LOW_BUDGET_THRESHOLD = 300;
 
 // ─── Live Viewer Channel ──────────────────────────────────────────────────
 

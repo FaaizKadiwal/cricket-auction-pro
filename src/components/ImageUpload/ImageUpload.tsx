@@ -96,7 +96,7 @@ export function ImageUpload({
       />
 
       {error && (
-        <span style={{ fontSize: 10, color: 'var(--danger)', textAlign: 'center' }}>{error}</span>
+        <span role="alert" style={{ fontSize: 10, color: 'var(--danger)', textAlign: 'center' }}>{error}</span>
       )}
     </div>
   );
