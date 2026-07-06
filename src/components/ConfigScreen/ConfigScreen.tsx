@@ -220,11 +220,15 @@ interface Step2Props {
   errors: ValidationError[];
   setErrors: (errors: ValidationError[]) => void;
   existingPlayers?: Player[];
+  lockStructural?: boolean;
 }
 
-function Step2({ draft, onChange, errors, setErrors, existingPlayers }: Step2Props) {
+function Step2({ draft, onChange, errors, setErrors, existingPlayers, lockStructural = false }: Step2Props) {
   const squadSize = getSquadSize(draft);
   const cats = draft.categories;
+  // In an in-progress draft, changing pick counts or category order would desync
+  // the generated schedule from picks already made, so lock those controls.
+  const lockDraftStructure = draft.mode === 'draft' && lockStructural;
 
   function updateCat(index: number, partial: Partial<CategoryDefinition>) {
     const updated = cats.map((c, i) => {
@@ -299,18 +303,18 @@ function Step2({ draft, onChange, errors, setErrors, existingPlayers }: Step2Pro
                   <button
                     type="button"
                     className={styles.catArrowBtn}
-                    disabled={i === 0}
+                    disabled={i === 0 || lockDraftStructure}
                     onClick={() => moveCategory(i, -1)}
                     aria-label="Move up"
                   >↑</button>
                   <button
                     type="button"
                     className={styles.catArrowBtn}
-                    disabled={i === cats.length - 1}
+                    disabled={i === cats.length - 1 || lockDraftStructure}
                     onClick={() => moveCategory(i, 1)}
                     aria-label="Move down"
                   >↓</button>
-                  {cats.length > 1 && (
+                  {cats.length > 1 && !lockDraftStructure && (
                     <button
                       type="button"
                       className={styles.catRemoveBtn}
@@ -351,12 +355,12 @@ function Step2({ draft, onChange, errors, setErrors, existingPlayers }: Step2Pro
                     <div className={styles.catStepper}>
                       <button type="button" className={styles.catStepBtn}
                         onClick={() => updateCat(i, { draftCount: Math.max(0, cat.draftCount - 1) })}
-                        aria-label="Decrease picks per team" disabled={cat.draftCount <= 0}
+                        aria-label="Decrease picks per team" disabled={cat.draftCount <= 0 || lockDraftStructure}
                       ><Icon name="minus" size={10} /></button>
                       <span className={styles.catStepVal}>{cat.draftCount}</span>
                       <button type="button" className={styles.catStepBtn}
                         onClick={() => updateCat(i, { draftCount: Math.min(squadSize, cat.draftCount + 1) })}
-                        aria-label="Increase picks per team" disabled={cat.draftCount >= squadSize}
+                        aria-label="Increase picks per team" disabled={cat.draftCount >= squadSize || lockDraftStructure}
                       ><Icon name="plus" size={10} /></button>
                     </div>
                   </div>
@@ -409,7 +413,7 @@ function Step2({ draft, onChange, errors, setErrors, existingPlayers }: Step2Pro
         })}
       </div>
 
-      <button type="button" className={styles.addCatBtn} onClick={addCategory}>+ Add Category</button>
+      {!lockDraftStructure && <button type="button" className={styles.addCatBtn} onClick={addCategory}>+ Add Category</button>}
 
       <div style={{ marginTop: 16, padding: '12px 16px', background: 'var(--surface2)', borderRadius: 10, fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>
         Tier order matters — unsold players demote down the list. The lowest tier's unsold players
@@ -528,7 +532,9 @@ export function ConfigScreen({
 
   function handleNext() {
     if (step === 1) {
-      const errs = validateConfig(draft.totalTeams, draft.playersPerTeam, draft.budget, draft.minBidReserve);
+      let errs = validateConfig(draft.totalTeams, draft.playersPerTeam, draft.budget, draft.minBidReserve);
+      // Draft mode has no budget/reserve fields, so ignore those checks.
+      if (draft.mode === 'draft') errs = errs.filter((e) => e.field === 'totalTeams' || e.field === 'playersPerTeam');
       if (errs.length) { setErrors(errs); return; }
     }
     if (step === 2) {
@@ -621,6 +627,7 @@ export function ConfigScreen({
               errors={errors}
               setErrors={setErrors}
               existingPlayers={existingPlayers}
+              lockStructural={isEdit && hasSoldPlayers}
             />
           )}
           {step === 3 && <Step3 draft={draft} mode={mode} />}

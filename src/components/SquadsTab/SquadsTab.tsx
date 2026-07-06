@@ -119,12 +119,16 @@ const TeamSquadCard = memo(function TeamSquadCard({ team, soldPlayers, onEditPla
                 </div>
                 <div className={styles.playerRight}>
                   {!isDraft && <span className={styles.playerPrice}>{formatPts(p.finalPrice)}</span>}
-                  <button
-                    className={styles.editSaleBtn}
-                    onClick={() => onEditPlayer(p)}
-                    aria-label={isDraft ? `Reassign ${p.name}` : `Correct sale for ${p.name}`}
-                    title={isDraft ? 'Reassign to another team' : 'Reassign team / fix price'}
-                  ><Icon name="pencil" size={12} /></button>
+                  {/* Draft picks are positional/scheduled — correct them with Undo on the
+                      draft board, not by reassigning here (which would break the schedule). */}
+                  {!isDraft && (
+                    <button
+                      className={styles.editSaleBtn}
+                      onClick={() => onEditPlayer(p)}
+                      aria-label={`Correct sale for ${p.name}`}
+                      title="Reassign team / fix price"
+                    ><Icon name="pencil" size={12} /></button>
+                  )}
                 </div>
               </div>
             );

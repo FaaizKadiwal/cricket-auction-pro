@@ -177,7 +177,7 @@ function OrderScreen({ teams, players, draftState, onDraftStateChange, onToast }
 
 // ─── Preview Screen (schedule + fairness) ─────────────────────────────────────
 
-function PreviewScreen({ teams, draftState, onDraftStateChange }: DraftTabProps) {
+function PreviewScreen({ teams, players, draftState, onDraftStateChange, onToast }: DraftTabProps) {
   const { config } = useTournament();
   const schedule = useMemo(() => getRoundSchedule(config), [config]);
   const fairness = useMemo(() => getSlotFairness(config, draftState.baseOrder), [config, draftState.baseOrder]);
@@ -186,6 +186,13 @@ function PreviewScreen({ teams, draftState, onDraftStateChange }: DraftTabProps)
   const catNames = config.categories.filter((c) => c.draftCount > 0).map((c) => c.name);
 
   const teamOf = (id: number) => teams.find((t) => t.id === id) ?? null;
+
+  const startDraft = () => {
+    // Re-validate — the pool could have changed since the order was confirmed.
+    const errs = getDraftSetupErrors(config, teams, players);
+    if (errs.length) { onToast(`Can't start: ${errs.join(' ')}`, 'warn'); return; }
+    onDraftStateChange({ ...draftState, phase: 'drafting' });
+  };
 
   return (
     <main className={styles.page} aria-label="Draft preview">
@@ -266,7 +273,7 @@ function PreviewScreen({ teams, draftState, onDraftStateChange }: DraftTabProps)
         <button className={styles.secondaryBtn} onClick={() => onDraftStateChange({ ...draftState, phase: 'order' })}>
           ← Back to Order
         </button>
-        <button className={styles.primaryBtn} onClick={() => onDraftStateChange({ ...draftState, phase: 'drafting' })}>
+        <button className={styles.primaryBtn} onClick={startDraft}>
           <Icon name="gavel" size={14} /> Start Draft
         </button>
       </div>

@@ -208,9 +208,21 @@ export default function App() {
       setTeams(updatedTeams);
       setPlayers(updatedPlayers);
       setSoldPlayers(updatedSoldPlayers);
+
+      // Keep draft state consistent with the (possibly changed) mode / team count.
+      // Structural fields lock once players are acquired, so re-seeding here only
+      // ever happens before any picks — no draft progress is lost.
+      if (newConfig.mode === 'draft') {
+        if (!draftState || draftState.baseOrder.length !== updatedTeams.length) {
+          setDraftState({ phase: 'captains', baseOrder: updatedTeams.map((t) => t.id), seed: '', captainSeed: '' });
+        }
+      } else if (draftState) {
+        setDraftState(null);
+      }
+
       setShowConfigEditor(false);
     },
-    [config, players, soldPlayers, teams, setConfig, setTeams, setPlayers, setSoldPlayers]
+    [config, players, soldPlayers, teams, draftState, setConfig, setTeams, setPlayers, setSoldPlayers, setDraftState]
   );
 
   // ── Data Handlers ──────────────────────────────────────────────────────────
