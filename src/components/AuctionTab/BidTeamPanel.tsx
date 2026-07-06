@@ -46,6 +46,10 @@ export const BidTeamPanel = memo(function BidTeamPanel({
     : capStatus === 'warn' ? styles.capWarn
     : styles.capSafe;
 
+  // Base-pick commits at the current (base) bid, so it must also be blocked when
+  // the base already exceeds this team's cap — mirroring the "+inc" over-cap check.
+  const basePickDisabled = isBlocked || leadingTeamId !== null || currentBid > cap;
+
   return (
     <div
       className={`${styles.panel} ${isLeading ? styles.panelLeading : ''} ${isBlocked ? styles.panelBlocked : ''}`}
@@ -80,12 +84,12 @@ export const BidTeamPanel = memo(function BidTeamPanel({
       <div className={styles.btnRow} role="group" aria-label={`Bid for ${teamLabel(team)}`}>
         <button
           className={`${styles.incBtn} ${styles.basePickBtn}`}
-          disabled={isBlocked || leadingTeamId !== null}
+          disabled={basePickDisabled}
           onClick={() => onBasePick(team.id)}
           aria-label="Pick at base price"
           style={{
-            borderColor: isBlocked || leadingTeamId !== null ? 'var(--border)' : team.color,
-            color:       isBlocked || leadingTeamId !== null ? 'var(--muted)'  : team.color,
+            borderColor: basePickDisabled ? 'var(--border)' : team.color,
+            color:       basePickDisabled ? 'var(--muted)'  : team.color,
           }}
         >=</button>
         {(() => {

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Team, Player, SoldPlayer } from '@/types';
 import type { DraftState } from '@/types/draft';
 import type { BroadcastHandle } from '@/hooks/useBroadcast';
@@ -6,6 +6,7 @@ import { getSquadSize, getCategoryStyle, getTotalSlots } from '@/constants/aucti
 import {
   getRoundSchedule, getSlotFairness, getFairnessSpread, canUseBalancedGrid,
   makeSeed, shuffleTeams, assignCaptainsToTeams, getDraftSetupErrors,
+  getCaptainDrawErrors, getDraftReadiness,
 } from '@/utils/draft';
 import { teamLabel } from '@/utils/format';
 import { buildDraftCsv, buildDraftJson, downloadFile } from '@/utils/export';
@@ -46,19 +47,35 @@ export function DraftTab(props: DraftTabProps) {
 
 function CaptainScreen({ teams, players, draftState, onDraftStateChange, onTeamsChange, onToast }: DraftTabProps) {
   const { config } = useTournament();
-  const setupErrors = useMemo(() => getDraftSetupErrors(config, teams, players), [config, teams, players]);
+  // The draw only needs franchises + captains named — an unfinished player pool
+  // must NOT block this ceremony (the pool is gated later, at Start Draft).
+  const drawErrors = useMemo(() => getCaptainDrawErrors(teams), [teams]);
+  const poolShortfalls = useMemo(() => getDraftReadiness(config, players), [config, players]);
   const [assigned, setAssigned] = useState<Team[] | null>(null);
   const [seed, setSeed] = useState('');
-  const canDraw = setupErrors.length === 0;
+  const canDraw = drawErrors.length === 0;
+
+  // A drawn-but-unconfirmed pairing goes stale if the roster changes underneath
+  // it (e.g. team count edited in the config modal while this screen stays
+  // mounted). Reset the reveal so a stale draw can never overwrite fresh teams.
+  const teamIdsKey = teams.map((t) => t.id).join(',');
+  useEffect(() => { setAssigned(null); setSeed(''); }, [teamIdsKey]);
 
   const draw = () => {
-    if (!canDraw) { onToast('Fix the setup issues before drawing captains.', 'warn'); return; }
+    if (!canDraw) { onToast('Name every franchise and captain before drawing.', 'warn'); return; }
     const s = makeSeed();
     setSeed(s);
     setAssigned(assignCaptainsToTeams(teams, s));
   };
   const confirm = () => {
     if (!assigned) { onToast('Draw the captains first.', 'warn'); return; }
+    // Safety net alongside the reset effect above: never commit a draw whose
+    // team list no longer matches the current roster.
+    if (assigned.length !== teams.length || assigned.some((a, i) => a.id !== teams[i].id)) {
+      setAssigned(null); setSeed('');
+      onToast('Teams changed since the draw — draw again.', 'warn');
+      return;
+    }
     onTeamsChange(assigned);
     onDraftStateChange({ ...draftState, phase: 'order', captainSeed: seed });
   };
@@ -69,13 +86,23 @@ function CaptainScreen({ teams, players, draftState, onDraftStateChange, onTeams
     <main className={styles.page} aria-label="Captain assignment">
       <div className={styles.header}>
         <h1 className={styles.title}>Captain Assignment</h1>
-        <p className={styles.subtitle}>Captains are drawn to teams at random. This is a fair, recorded draw — everyone has an equal shot at every team. It locks once you continue.</p>
+        <p className={styles.subtitle}><strong>Draw Captains</strong> randomly pairs every captain with a franchise in one fair, recorded draw (re-draw as often as you like). <strong>Confirm Captains</strong> locks the pairing and moves on to the draft order.</p>
       </div>
 
-      {setupErrors.length > 0 && (
+      {drawErrors.length > 0 && (
         <div className={styles.warnBanner} role="alert">
           <Icon name="alert-triangle" size={14} />
-          <span>Before the draft can start: {setupErrors.join(' ')}</span>
+          <span>Before captains can be drawn: {drawErrors.join(' ')}</span>
+        </div>
+      )}
+
+      {drawErrors.length === 0 && poolShortfalls.length > 0 && (
+        <div className={styles.infoNote} role="note">
+          <Icon name="alert-circle" size={14} />
+          <span>
+            Player pool still short: {poolShortfalls.map((s) => `${s.category} ${s.have}/${s.need}`).join(', ')}.
+            {' '}That doesn't block the captain draw — but the pool must be complete before the draft starts.
+          </span>
         </div>
       )}
 
@@ -115,7 +142,10 @@ function CaptainScreen({ teams, players, draftState, onDraftStateChange, onTeams
 
 function OrderScreen({ teams, players, draftState, onDraftStateChange, onToast }: DraftTabProps) {
   const { config } = useTournament();
-  const setupErrors = useMemo(() => getDraftSetupErrors(config, teams, players), [config, teams, players]);
+  // Like the captain draw, the order shuffle only needs named teams — the
+  // player pool is enforced at Start Draft, not here.
+  const drawErrors = useMemo(() => getCaptainDrawErrors(teams), [teams]);
+  const poolShortfalls = useMemo(() => getDraftReadiness(config, players), [config, players]);
   const ordered = useMemo(
     () => draftState.baseOrder.map((id) => teams.find((t) => t.id === id)).filter((t): t is Team => !!t),
     [draftState.baseOrder, teams]
@@ -129,7 +159,7 @@ function OrderScreen({ teams, players, draftState, onDraftStateChange, onToast }
   };
 
   const confirm = () => {
-    if (setupErrors.length > 0) { onToast('Fix the setup issues before continuing.', 'warn'); return; }
+    if (drawErrors.length > 0) { onToast('Fix the setup issues before continuing.', 'warn'); return; }
     if (!hasShuffled) { onToast('Shuffle the draft order before continuing.', 'warn'); return; }
     onDraftStateChange({ ...draftState, phase: 'preview' });
   };
@@ -141,10 +171,20 @@ function OrderScreen({ teams, players, draftState, onDraftStateChange, onToast }
         <p className={styles.subtitle}>Randomly shuffle the teams into the base pick order. This is the only chance to re-draw — it locks once you continue.</p>
       </div>
 
-      {setupErrors.length > 0 && (
+      {drawErrors.length > 0 && (
         <div className={styles.warnBanner} role="alert">
           <Icon name="alert-triangle" size={14} />
-          <span>Before the draft can start: {setupErrors.join(' ')}</span>
+          <span>Before the order can be confirmed: {drawErrors.join(' ')}</span>
+        </div>
+      )}
+
+      {drawErrors.length === 0 && poolShortfalls.length > 0 && (
+        <div className={styles.infoNote} role="note">
+          <Icon name="alert-circle" size={14} />
+          <span>
+            Player pool still short: {poolShortfalls.map((s) => `${s.category} ${s.have}/${s.need}`).join(', ')}.
+            {' '}You can lock the order now — the pool must be complete before the draft starts.
+          </span>
         </div>
       )}
 
@@ -167,7 +207,7 @@ function OrderScreen({ teams, players, draftState, onDraftStateChange, onToast }
       </div>
 
       <div className={styles.footerBar}>
-        <button className={styles.primaryBtn} onClick={confirm} disabled={!hasShuffled || setupErrors.length > 0}>
+        <button className={styles.primaryBtn} onClick={confirm} disabled={!hasShuffled || drawErrors.length > 0}>
           Confirm Order <Icon name="arrow-down" size={14} style={{ transform: 'rotate(-90deg)' }} />
         </button>
       </div>
@@ -184,11 +224,13 @@ function PreviewScreen({ teams, players, draftState, onDraftStateChange, onToast
   const spread = getFairnessSpread(fairness);
   const usingGrid = canUseBalancedGrid(config);
   const catNames = config.categories.filter((c) => c.draftCount > 0).map((c) => c.name);
+  // THIS is where the full roster gate lives — drafting needs a complete pool.
+  const setupErrors = useMemo(() => getDraftSetupErrors(config, teams, players), [config, teams, players]);
 
   const teamOf = (id: number) => teams.find((t) => t.id === id) ?? null;
 
   const startDraft = () => {
-    // Re-validate — the pool could have changed since the order was confirmed.
+    // Re-validate — the pool could have changed since this screen rendered.
     const errs = getDraftSetupErrors(config, teams, players);
     if (errs.length) { onToast(`Can't start: ${errs.join(' ')}`, 'warn'); return; }
     onDraftStateChange({ ...draftState, phase: 'drafting' });
@@ -200,6 +242,13 @@ function PreviewScreen({ teams, players, draftState, onDraftStateChange, onToast
         <h1 className={styles.title}>Draft Preview</h1>
         <p className={styles.subtitle}>Review the locked order, the round schedule, and the fairness of the draw before starting.</p>
       </div>
+
+      {setupErrors.length > 0 && (
+        <div className={styles.warnBanner} role="alert">
+          <Icon name="alert-triangle" size={14} />
+          <span>Before the draft can start: {setupErrors.join(' ')} Complete the pool in the Setup tab.</span>
+        </div>
+      )}
 
       <div className={styles.fairBadge} data-tone={spread <= 1 ? 'ok' : 'warn'}>
         <Icon name={usingGrid ? 'shield-check' : 'scale'} size={14} />
@@ -273,7 +322,7 @@ function PreviewScreen({ teams, players, draftState, onDraftStateChange, onToast
         <button className={styles.secondaryBtn} onClick={() => onDraftStateChange({ ...draftState, phase: 'order' })}>
           ← Back to Order
         </button>
-        <button className={styles.primaryBtn} onClick={startDraft}>
+        <button className={styles.primaryBtn} onClick={startDraft} disabled={setupErrors.length > 0}>
           <Icon name="gavel" size={14} /> Start Draft
         </button>
       </div>

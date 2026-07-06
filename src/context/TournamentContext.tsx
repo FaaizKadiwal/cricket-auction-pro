@@ -11,7 +11,7 @@ interface TournamentContextValue {
 
 const TournamentContext = createContext<TournamentContextValue>({
   config: DEFAULT_CONFIG,
-  squadSize: DEFAULT_CONFIG.playersPerTeam - 1,
+  squadSize: getSquadSize(DEFAULT_CONFIG),
 });
 
 // ─── Provider ─────────────────────────────────────────────────────────────────

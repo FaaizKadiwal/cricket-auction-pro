@@ -65,6 +65,38 @@
 .importIssues li { margin-bottom: 4px; }
 .importNote { margin-top: 6px; color: var(--warning); font-size: 12.5px; }
 
+/* ─── Setup section headers (draft: Franchises + Captains) ────────────────────── */
+.setupSectionHead { margin: 8px 0 14px; }
+.setupSectionTitle {
+  font-family: var(--font-display); font-size: 20px; letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+.setupSectionNote { color: var(--muted); font-size: 13px; line-height: 1.5; max-width: 720px; }
+.captainPoolNote {
+  display: flex; align-items: flex-start; gap: 8px;
+  color: var(--text-secondary);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 10px 14px;
+}
+.captainPoolNote svg { margin-top: 2px; color: var(--accent); flex-shrink: 0; }
+.captainPoolNote strong { color: var(--text); }
+
+/* Captains pool — compact, deliberately distinct from the franchise cards */
+.captainPoolGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  margin-top: 32px;
+}
+.captainPoolCard {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 14px; padding: 12px 14px;
+  transition: border-color 0.2s;
+}
+.captainPoolCard:hover { border-color: rgba(0,212,255,0.35); }
+.captainPoolFields { flex: 1; min-width: 0; }
+
 /* ─── Team grid ──────────────────────────────────────────────────────────────── */
 .teamGrid {
   display: grid;

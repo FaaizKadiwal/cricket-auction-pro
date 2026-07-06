@@ -226,7 +226,9 @@ export function getDraftReadiness(
   for (const c of config.categories) {
     const need = config.totalTeams * (c.draftCount ?? 0);
     if (need === 0) continue;
-    const have = players.filter((p) => p.category === c.name).length;
+    // Count only draftable players — matches getDraftAvailablePlayers, so a
+    // non-pending stray (e.g. from a restored backup) can't satisfy the gate.
+    const have = players.filter((p) => p.status === 'pending' && p.category === c.name).length;
     if (have < need) shortfalls.push({ category: c.name, need, have });
   }
   return shortfalls;
@@ -244,8 +246,26 @@ function firstDuplicate(names: string[]): string | null {
 }
 
 /**
- * Roster validation before a draft may start (spec §9, generic form): every team
- * and captain named + unique, player names unique, and enough players per
+ * What the captain draw (and order shuffle) actually needs: every franchise and
+ * captain named + unique. Deliberately does NOT look at the player pool — the
+ * draw is a pre-draft ceremony and must not be blocked by an unfinished roster;
+ * the pool is gated later, at Start Draft (getDraftSetupErrors).
+ */
+export function getCaptainDrawErrors(teams: Team[]): string[] {
+  const errors: string[] = [];
+
+  if (teams.some((t) => !t.name.trim())) errors.push('Every franchise needs a name (Setup tab).');
+  else { const d = firstDuplicate(teams.map((t) => t.name)); if (d) errors.push(`Duplicate team name: "${d}".`); }
+
+  if (teams.some((t) => !t.captain.trim())) errors.push('Every captain needs a name (Setup tab).');
+  else { const d = firstDuplicate(teams.map((t) => t.captain)); if (d) errors.push(`Duplicate captain name: "${d}".`); }
+
+  return errors;
+}
+
+/**
+ * Full roster validation before drafting may begin (spec §9, generic form):
+ * the captain-draw checks plus player-name uniqueness and enough players per
  * category. Returns a clear, itemised list of failures (empty = ready).
  */
 export function getDraftSetupErrors(
@@ -253,13 +273,7 @@ export function getDraftSetupErrors(
   teams: Team[],
   players: Player[],
 ): string[] {
-  const errors: string[] = [];
-
-  if (teams.some((t) => !t.name.trim())) errors.push('Every team needs a name (Setup tab).');
-  else { const d = firstDuplicate(teams.map((t) => t.name)); if (d) errors.push(`Duplicate team name: "${d}".`); }
-
-  if (teams.some((t) => !t.captain.trim())) errors.push('Every team needs a captain (Setup tab).');
-  else { const d = firstDuplicate(teams.map((t) => t.captain)); if (d) errors.push(`Duplicate captain name: "${d}".`); }
+  const errors = getCaptainDrawErrors(teams);
 
   const dupPlayer = firstDuplicate(players.map((p) => p.name));
   if (dupPlayer) errors.push(`Duplicate player name: "${dupPlayer}".`);

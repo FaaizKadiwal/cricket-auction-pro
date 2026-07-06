@@ -269,7 +269,7 @@ export default function App() {
         const lowerCatPlayers = players.filter((p) => p.category === lowerCat && p.id !== playerId);
         const newBasePrice = lowerCatPlayers.length > 0
           ? Math.min(...lowerCatPlayers.map((p) => p.basePrice))
-          : config.minBidReserve;
+          : Math.max(1, config.minBidReserve);
 
         setPlayers((prev) =>
           prev.map((p) =>

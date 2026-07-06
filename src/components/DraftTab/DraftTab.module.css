@@ -57,6 +57,20 @@
   border: 1px solid color-mix(in srgb, var(--warning) 30%, transparent);
 }
 
+/* Non-blocking heads-up (e.g. pool incomplete during the captain/order ceremonies) */
+.infoNote {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+}
+.infoNote svg { color: var(--accent); flex-shrink: 0; }
+
 /* ─── Order screen ────────────────────────────────────────────────────────── */
 
 .orderActions { display: flex; align-items: center; gap: 14px; }

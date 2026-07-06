@@ -25,9 +25,11 @@ interface TeamCardProps {
   team: Team;
   index: number;
   onChange: (id: number, field: keyof Team, value: string | null) => void;
+  /** Draft mode hides the captain here — captains are a separate pool drawn to franchises. */
+  hideCaptain?: boolean;
 }
 
-function TeamCard({ team, index, onChange }: TeamCardProps) {
+function TeamCard({ team, index, onChange, hideCaptain = false }: TeamCardProps) {
   const nameId    = useId();
   const captainId = useId();
 
@@ -75,32 +77,74 @@ function TeamCard({ team, index, onChange }: TeamCardProps) {
           </div>
         </div>
 
-        {/* Captain row */}
-        <div className={styles.captainImgRow}>
-          <ImageUpload
-            value={team.captainBase64}
-            onChange={(v) => onChange(team.id, 'captainBase64', v)}
-            label="Captain"
-            size={60}
-            circle={true}
-            maxDim={400}
-            smartCrop={true}
-            placeholder={<Icon name="user" size={24} />}
-          />
-          <div style={{ flex: 1 }}>
-            <div className={styles.formGroup}>
-              <label className={styles.formLabel} htmlFor={captainId}>Captain Name</label>
-              <input
-                id={captainId}
-                className={styles.formInput}
-                value={team.captain}
-                maxLength={40}
-                placeholder="Captain's full name"
-                onChange={(e) => onChange(team.id, 'captain', e.target.value)}
-              />
+        {/* Captain row — omitted in draft mode (captains are a separate, drawn pool) */}
+        {!hideCaptain && (
+          <div className={styles.captainImgRow}>
+            <ImageUpload
+              value={team.captainBase64}
+              onChange={(v) => onChange(team.id, 'captainBase64', v)}
+              label="Captain"
+              size={60}
+              circle={true}
+              maxDim={400}
+              smartCrop={true}
+              placeholder={<Icon name="user" size={24} />}
+            />
+            <div style={{ flex: 1 }}>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel} htmlFor={captainId}>Captain Name</label>
+                <input
+                  id={captainId}
+                  className={styles.formInput}
+                  value={team.captain}
+                  maxLength={40}
+                  placeholder="Captain's full name"
+                  onChange={(e) => onChange(team.id, 'captain', e.target.value)}
+                />
+              </div>
             </div>
           </div>
-        </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Captain Pool Card (draft mode only) ──────────────────────────────────────
+// Captains are known people entered as an UNPAIRED pool; the random Captain Draw
+// in the Draft tab decides which franchise each one leads. Stored positionally on
+// `team.captain` (reused as storage) — the order here carries no team assignment.
+
+interface CaptainPoolCardProps {
+  team: Team;
+  index: number;
+  onChange: (id: number, field: keyof Team, value: string | null) => void;
+}
+
+function CaptainPoolCard({ team, index, onChange }: CaptainPoolCardProps) {
+  const captainId = useId();
+  return (
+    <div className={styles.captainPoolCard}>
+      <ImageUpload
+        value={team.captainBase64}
+        onChange={(v) => onChange(team.id, 'captainBase64', v)}
+        label="Photo"
+        size={56}
+        circle={true}
+        maxDim={400}
+        smartCrop={true}
+        placeholder={<Icon name="user" size={22} />}
+      />
+      <div className={styles.captainPoolFields}>
+        <label className={styles.formLabel} htmlFor={captainId}>Captain {index + 1}</label>
+        <input
+          id={captainId}
+          className={styles.formInput}
+          value={team.captain}
+          maxLength={40}
+          placeholder="Captain's full name"
+          onChange={(e) => onChange(team.id, 'captain', e.target.value)}
+        />
       </div>
     </div>
   );
@@ -559,7 +603,7 @@ export function SetupTab({ teams, onTeamsChange, players, onPlayersChange, onToa
       {/* Sub-nav */}
       <div className={styles.subNav} role="tablist">
         {([
-            { id: 'teams' as View,   label: 'Teams & Captains', icon: 'shield' as const },
+            { id: 'teams' as View,   label: isDraft ? 'Franchises & Captains' : 'Teams & Captains', icon: 'shield' as const },
             { id: 'players' as View, label: 'Player Pool',       icon: 'user'   as const },
           ]).map(({ id, label, icon }) => (
           <button
@@ -611,13 +655,38 @@ export function SetupTab({ teams, onTeamsChange, players, onPlayersChange, onToa
         />
       </div>
 
-      {view === 'teams' && (
+      {view === 'teams' && (isDraft ? (
+        <>
+          <div className={styles.setupSectionHead}>
+            <h2 className={styles.setupSectionTitle}>Franchises</h2>
+            <p className={styles.setupSectionNote}>The teams players are drafted into — name, logo and colour. Captains are set up separately below.</p>
+          </div>
+          <section aria-label="Franchises" className={styles.teamGrid}>
+            {teams.map((team, i) => (
+              <TeamCard key={team.id} team={team} index={i} onChange={handleTeamChange} hideCaptain />
+            ))}
+          </section>
+
+          <div className={styles.setupSectionHead}>
+            <h2 className={styles.setupSectionTitle}>Captains</h2>
+            <p className={`${styles.setupSectionNote} ${styles.captainPoolNote}`} role="note">
+              <Icon name="alert-circle" size={13} />
+              <span>These captains are decided in advance. The random <strong>Captain Draw</strong> in the Draft tab decides which franchise each one leads — the order here does <strong>not</strong> assign them to a team.</span>
+            </p>
+          </div>
+          <section aria-label="Captains pool" className={styles.captainPoolGrid}>
+            {teams.map((team, i) => (
+              <CaptainPoolCard key={team.id} team={team} index={i} onChange={handleTeamChange} />
+            ))}
+          </section>
+        </>
+      ) : (
         <section aria-label="Team configuration" className={styles.teamGrid}>
           {teams.map((team, i) => (
             <TeamCard key={team.id} team={team} index={i} onChange={handleTeamChange} />
           ))}
         </section>
-      )}
+      ))}
 
       {view === 'players' && (
         <section aria-label="Player pool" className={styles.playerPanel}>

@@ -14,7 +14,7 @@ const CATEGORY_ALIASES    = new Set(['category', 'cat', 'categories', 'tier', 't
 const DESC_ALIASES        = new Set(['description', 'desc', 'bio', 'about', 'notes', 'note', 'info']);
 const BASE_ALIASES        = new Set(['base', 'base price', 'baseprice', 'base pts', 'price', 'points', 'pts', 'value']);
 
-const TEAM_NAME_ALIASES = new Set(['team', 'team name', 'teamname', 'franchise', 'club', 'side']);
+const TEAM_NAME_ALIASES = new Set(['team', 'team name', 'teamname', 'franchise', 'franchise name', 'club', 'side', 'name']);
 const CAPTAIN_ALIASES   = new Set(['captain', 'captain name', 'captainname', 'skipper', 'leader', 'cpt']);
 const COLOR_ALIASES     = new Set(['color', 'colour', 'hex', 'hex color', 'team color', 'team colour']);
 
