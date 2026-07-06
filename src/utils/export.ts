@@ -17,7 +17,8 @@ const nameOf = (teams: Team[], id: number): string => {
   return t ? teamLabel(t) : `Team ${id}`;
 };
 
-function csvEscape(v: string): string {
+/** Quote a CSV field when it contains a comma, quote, or newline (RFC-4180). */
+export function csvEscape(v: string): string {
   return /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
 }
 

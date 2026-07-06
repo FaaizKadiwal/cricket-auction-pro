@@ -389,6 +389,7 @@ export default function App() {
                 onTeamsChange={setTeams}
                 players={players}
                 onPlayersChange={setPlayers}
+                onToast={showToast}
               />
             </ErrorBoundary>
           )}

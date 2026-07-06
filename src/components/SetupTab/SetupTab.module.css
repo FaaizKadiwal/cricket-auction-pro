@@ -34,6 +34,37 @@
 .subNavBtnActive { background: var(--accent); color: #000; border-color: var(--accent); }
 .subNavBtnActive:hover { background: var(--accent-hover); }
 
+/* ─── CSV import toolbar ─────────────────────────────────────────────────────── */
+.importToolbar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 20px; padding: 10px 14px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.importHint { flex: 1; min-width: 160px; font-size: 12px; color: var(--muted); }
+.templateLink {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 12px; border-radius: 8px;
+  border: 1px solid var(--border); background: transparent; color: var(--muted);
+  font-family: var(--font-body); font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all 0.2s;
+}
+.templateLink:hover { color: var(--text); border-color: var(--accent); }
+.importBtn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: 8px;
+  border: 1px solid var(--accent); background: var(--surface2); color: var(--accent);
+  font-family: var(--font-body); font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: all 0.2s;
+}
+.importBtn:hover { background: var(--accent); color: #000; }
+
+/* Import confirmation summary (inside ConfirmDialog) */
+.importSummary { font-size: 14px; line-height: 1.5; }
+.importIssues { margin: 10px 0 0; padding-left: 18px; color: var(--muted); font-size: 13px; }
+.importIssues li { margin-bottom: 4px; }
+.importNote { margin-top: 6px; color: var(--warning); font-size: 12.5px; }
+
 /* ─── Team grid ──────────────────────────────────────────────────────────────── */
 .teamGrid {
   display: grid;

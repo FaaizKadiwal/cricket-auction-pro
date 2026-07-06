@@ -1,13 +1,23 @@
-import { useState, useCallback, useId, useMemo, useEffect } from 'react';
-import type { Team, Player, Category, ValidationError } from '@/types';
+import { useState, useCallback, useId, useMemo, useEffect, useRef } from 'react';
+import type { Team, Player, Category, ValidationError, ToastType } from '@/types';
 import { getCategoryStyle, getCategoryNames, getTotalSlots, getMode } from '@/constants/auction';
 import { validatePlayerForm, countByCategory } from '@/utils/auction';
 import { formatPts } from '@/utils/format';
+import { downloadFile } from '@/utils/export';
+import {
+  parsePlayersCsv, parseTeamsCsv, buildPlayersTemplate, buildTeamsTemplate,
+  type PlayerImportResult, type TeamImportResult,
+} from '@/utils/csvImport';
 import { useTournament } from '@/context/TournamentContext';
 import { ImageUpload } from '@/components/ImageUpload/ImageUpload';
 import { Avatar } from '@/components/Avatar/Avatar';
 import { Icon } from '@/components/Icon/Icon';
+import { ConfirmDialog } from '@/components/ConfirmDialog/ConfirmDialog';
 import styles from './SetupTab.module.css';
+
+// A successfully-parsed import awaiting the operator's confirmation.
+type PlayerImportSuccess = Extract<PlayerImportResult, { ok: true }>;
+type TeamImportSuccess = Extract<TeamImportResult, { ok: true }>;
 
 // ─── Team Card ────────────────────────────────────────────────────────────────
 
@@ -351,16 +361,23 @@ interface SetupTabProps {
   onTeamsChange: (teams: Team[]) => void;
   players: Player[];
   onPlayersChange: (players: Player[]) => void;
+  onToast: (msg: string, type: ToastType) => void;
 }
 
 type View = 'teams' | 'players';
 
-export function SetupTab({ teams, onTeamsChange, players, onPlayersChange }: SetupTabProps) {
+export function SetupTab({ teams, onTeamsChange, players, onPlayersChange, onToast }: SetupTabProps) {
   const { config } = useTournament();
   const isDraft = getMode(config) === 'draft';
   const [view, setView] = useState<View>('teams');
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [playerSearch, setPlayerSearch] = useState('');
+
+  // CSV import — hidden file inputs + parsed-result-awaiting-confirmation state
+  const playersFileRef = useRef<HTMLInputElement>(null);
+  const teamsFileRef = useRef<HTMLInputElement>(null);
+  const [pendingPlayerImport, setPendingPlayerImport] = useState<PlayerImportSuccess | null>(null);
+  const [pendingTeamImport, setPendingTeamImport] = useState<TeamImportSuccess | null>(null);
 
   // Clear editing state when switching away from players view
   useEffect(() => {
@@ -412,6 +429,79 @@ export function SetupTab({ teams, onTeamsChange, players, onPlayersChange }: Set
   const handleCancelEdit = useCallback(() => {
     setEditingPlayer(null);
   }, []);
+
+  // ── CSV import: players ────────────────────────────────────────────────────
+  const handlePlayersFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-selecting the same file
+    if (!file) return;
+    file.text().then((text) => {
+      const result = parsePlayersCsv(text, config, players);
+      if (!result.ok) { onToast(result.error, 'warn'); return; }
+      if (result.players.length === 0) {
+        const why = result.skippedDuplicates > 0
+          ? 'every name is already in the pool'
+          : result.invalidRows.length > 0 ? 'no rows were valid' : 'no player rows were found';
+        onToast(`Nothing to import — ${why}.`, 'warn');
+        return;
+      }
+      setPendingPlayerImport(result);
+    }).catch(() => onToast('Could not read that file.', 'warn'));
+  }, [config, players, onToast]);
+
+  const applyPlayerImport = useCallback(() => {
+    if (!pendingPlayerImport) return;
+    let nextId = players.reduce((max, p) => (p.id > max ? p.id : max), 0);
+    const added: Player[] = pendingPlayerImport.players.map((pp) => {
+      nextId += 1;
+      return { ...pp, id: nextId, status: 'pending' as const, photoBase64: null };
+    });
+    onPlayersChange([...players, ...added]);
+    onToast(`Imported ${added.length} player${added.length === 1 ? '' : 's'}.`, 'ok');
+    setPendingPlayerImport(null);
+    setView('players');
+  }, [pendingPlayerImport, players, onPlayersChange, onToast]);
+
+  // ── CSV import: teams & captains ───────────────────────────────────────────
+  const handleTeamsFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    file.text().then((text) => {
+      const result = parseTeamsCsv(text, config);
+      if (!result.ok) { onToast(result.error, 'warn'); return; }
+      setPendingTeamImport(result);
+    }).catch(() => onToast('Could not read that file.', 'warn'));
+  }, [config, onToast]);
+
+  const applyTeamImport = useCallback(() => {
+    if (!pendingTeamImport) return;
+    const { updates } = pendingTeamImport;
+    const next = teams.map((t, i) => {
+      const u = updates[i];
+      if (!u) return t;
+      return {
+        ...t,
+        ...(u.name !== undefined ? { name: u.name } : {}),
+        ...(u.captain !== undefined ? { captain: u.captain } : {}),
+        ...(u.color !== undefined ? { color: u.color } : {}),
+      };
+    });
+    const count = Math.min(updates.length, teams.length);
+    onTeamsChange(next);
+    onToast(`Updated ${count} team${count === 1 ? '' : 's'}.`, 'ok');
+    setPendingTeamImport(null);
+    setView('teams');
+  }, [pendingTeamImport, teams, onTeamsChange, onToast]);
+
+  const downloadPlayersTemplate = useCallback(
+    () => downloadFile('players_template.csv', buildPlayersTemplate(config), 'text/csv;charset=utf-8'),
+    [config]
+  );
+  const downloadTeamsTemplate = useCallback(
+    () => downloadFile('teams_template.csv', buildTeamsTemplate(config), 'text/csv;charset=utf-8'),
+    [config]
+  );
 
   // Dynamic category counts
   const catCounts = useMemo(() => countByCategory(players, config), [config, players]);
@@ -482,6 +572,45 @@ export function SetupTab({ teams, onTeamsChange, players, onPlayersChange }: Set
         ))}
       </div>
 
+      {/* CSV import toolbar (context-sensitive to the active sub-view) */}
+      <div className={styles.importToolbar}>
+        <span className={styles.importHint}>
+          {view === 'teams'
+            ? 'Bulk-fill teams & captains from a spreadsheet'
+            : 'Bulk-add players from a spreadsheet'}
+        </span>
+        <button
+          type="button"
+          className={styles.templateLink}
+          onClick={view === 'teams' ? downloadTeamsTemplate : downloadPlayersTemplate}
+        >
+          <Icon name="download" size={13} /> Template
+        </button>
+        <button
+          type="button"
+          className={styles.importBtn}
+          onClick={() => (view === 'teams' ? teamsFileRef.current : playersFileRef.current)?.click()}
+        >
+          <Icon name="upload" size={13} /> Import CSV
+        </button>
+        <input
+          ref={teamsFileRef}
+          type="file"
+          accept=".csv,text/csv"
+          onChange={handleTeamsFile}
+          style={{ display: 'none' }}
+          aria-hidden="true"
+        />
+        <input
+          ref={playersFileRef}
+          type="file"
+          accept=".csv,text/csv"
+          onChange={handlePlayersFile}
+          style={{ display: 'none' }}
+          aria-hidden="true"
+        />
+      </div>
+
       {view === 'teams' && (
         <section aria-label="Team configuration" className={styles.teamGrid}>
           {teams.map((team, i) => (
@@ -518,6 +647,59 @@ export function SetupTab({ teams, onTeamsChange, players, onPlayersChange }: Set
             />
           </div>
         </section>
+      )}
+
+      {pendingPlayerImport && (
+        <ConfirmDialog
+          title={`Import ${pendingPlayerImport.players.length} player${pendingPlayerImport.players.length === 1 ? '' : 's'}?`}
+          message={
+            <div className={styles.importSummary}>
+              <p>{pendingPlayerImport.players.length} new player{pendingPlayerImport.players.length === 1 ? '' : 's'} will be added to the pool.</p>
+              {(pendingPlayerImport.skippedDuplicates > 0 || pendingPlayerImport.invalidRows.length > 0 || pendingPlayerImport.warnings.length > 0) && (
+                <ul className={styles.importIssues}>
+                  {pendingPlayerImport.skippedDuplicates > 0 && (
+                    <li>{pendingPlayerImport.skippedDuplicates} duplicate name{pendingPlayerImport.skippedDuplicates === 1 ? '' : 's'} already in the pool will be skipped.</li>
+                  )}
+                  {pendingPlayerImport.invalidRows.length > 0 && (
+                    <li>
+                      {pendingPlayerImport.invalidRows.length} row{pendingPlayerImport.invalidRows.length === 1 ? '' : 's'} skipped
+                      {' '}({pendingPlayerImport.invalidRows.slice(0, 3).map((r) => `line ${r.row}: ${r.reason}`).join('; ')}
+                      {pendingPlayerImport.invalidRows.length > 3 ? '; …' : ''}).
+                    </li>
+                  )}
+                  {pendingPlayerImport.warnings.map((w) => <li key={w}>{w}</li>)}
+                </ul>
+              )}
+            </div>
+          }
+          confirmLabel="Add to pool"
+          tone="success"
+          onConfirm={applyPlayerImport}
+          onCancel={() => setPendingPlayerImport(null)}
+        />
+      )}
+
+      {pendingTeamImport && (
+        <ConfirmDialog
+          title="Apply imported team details?"
+          message={
+            <div className={styles.importSummary}>
+              <p>
+                Name and captain will be set for {Math.min(pendingTeamImport.updates.length, teams.length)} team
+                {Math.min(pendingTeamImport.updates.length, teams.length) === 1 ? '' : 's'} (in order).
+              </p>
+              <p className={styles.importNote}>Existing names/captains in those slots will be overwritten.</p>
+              {pendingTeamImport.warnings.length > 0 && (
+                <ul className={styles.importIssues}>
+                  {pendingTeamImport.warnings.map((w) => <li key={w}>{w}</li>)}
+                </ul>
+              )}
+            </div>
+          }
+          confirmLabel="Apply"
+          onConfirm={applyTeamImport}
+          onCancel={() => setPendingTeamImport(null)}
+        />
       )}
     </main>
   );

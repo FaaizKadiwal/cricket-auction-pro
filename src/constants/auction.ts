@@ -120,6 +120,8 @@ export const MAX_VISIBLE_BIDS = 8;
 export const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10 MB
 /** Below this many remaining points a team's budget is shown in the danger colour. */
 export const LOW_BUDGET_THRESHOLD = 300;
+/** Base price given to an imported auction player when the CSV omits a valid price (editable afterwards). */
+export const IMPORT_FALLBACK_BASE_PRICE = 100;
 
 // ─── Live Viewer Channel ──────────────────────────────────────────────────
 
