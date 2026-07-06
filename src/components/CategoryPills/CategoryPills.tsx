@@ -1,5 +1,6 @@
 import type { SoldPlayer, TournamentConfig } from '@/types';
 import { getCatCount } from '@/utils/auction';
+import { getMode } from '@/constants/auction';
 import { withAlpha } from '@/utils/color';
 import styles from './CategoryPills.module.css';
 
@@ -10,15 +11,17 @@ interface CategoryPillsProps {
 }
 
 /**
- * Per-team category tally pills — "{initial}: {count}/{max}" — coloured by
- * category. Shared by the auction sidebar, the squads view, and the live squad
- * view so the badge looks identical everywhere.
+ * Per-team category tally pills — "{initial}: {count}/{target}" — coloured by
+ * category. The target is the auction per-team `max` or, in draft mode, the
+ * exact `draftCount`. Shared by the auction sidebar, squads, and live squad view.
  */
 export function CategoryPills({ teamId, soldPlayers, config }: CategoryPillsProps) {
+  const isDraft = getMode(config) === 'draft';
   return (
     <>
       {config.categories.map((cat) => {
         const count = getCatCount(teamId, cat.name, soldPlayers);
+        const target = isDraft ? cat.draftCount : cat.max;
         return (
           <span
             key={cat.name}
@@ -29,7 +32,7 @@ export function CategoryPills({ teamId, soldPlayers, config }: CategoryPillsProp
               border: `1px solid ${withAlpha(cat.color, 0.22)}`,
             }}
           >
-            {cat.name[0]}: {count}{cat.max > 0 ? `/${cat.max}` : ''}
+            {cat.name[0]}: {count}{target > 0 ? `/${target}` : ''}
           </span>
         );
       })}

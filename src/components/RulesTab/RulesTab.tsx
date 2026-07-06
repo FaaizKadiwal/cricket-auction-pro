@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { getTotalSlots, describeBidTiers } from '@/constants/auction';
+import { getTotalSlots, describeBidTiers, getMode } from '@/constants/auction';
+import { getRoundSchedule, canUseBalancedGrid } from '@/utils/draft';
 import { useTournament } from '@/context/TournamentContext';
 import { formatPts } from '@/utils/format';
 import { Icon, type IconName } from '@/components/Icon/Icon';
@@ -20,6 +21,7 @@ interface RuleSection {
 export function RulesTab() {
   const { config, squadSize } = useTournament();
   const totalSlots = getTotalSlots(config);
+  const isDraft = getMode(config) === 'draft';
   const [downloading, setDownloading] = useState(false);
 
   const handleDownload = async () => {
@@ -28,14 +30,16 @@ export function RulesTab() {
     try {
       const subtitle = [
         `${config.tournamentName}`,
-        `${config.totalTeams} teams · ${formatPts(config.budget)} pts budget per team · ${config.playersPerTeam} players per squad (incl. captain)`,
-        'All captains must acknowledge these rules before bidding begins.',
+        isDraft
+          ? `${config.totalTeams} teams · ${squadSize} draft rounds · ${config.playersPerTeam} players per squad (incl. captain)`
+          : `${config.totalTeams} teams · ${formatPts(config.budget)} pts budget per team · ${config.playersPerTeam} players per squad (incl. captain)`,
+        isDraft ? 'All captains must acknowledge these rules before the draft begins.' : 'All captains must acknowledge these rules before bidding begins.',
       ].join('\n');
-      const filename = `${config.tournamentName} - Auction Rules.pdf`;
+      const filename = `${config.tournamentName} - ${isDraft ? 'Draft' : 'Auction'} Rules.pdf`;
       // Lazy-load the PDF generator (jsPDF + its deps) only on demand so it
       // stays out of the initial bundle that loads on the projector.
       const { downloadRulesPdf } = await import('@/utils/pdf');
-      downloadRulesPdf(config.tournamentName, subtitle, sections, filename);
+      downloadRulesPdf(config.tournamentName, subtitle, sections, filename, `OFFICIAL ${isDraft ? 'DRAFT' : 'AUCTION'} RULES`);
     } finally {
       setDownloading(false);
     }
@@ -49,7 +53,7 @@ export function RulesTab() {
     return `${cat.name.toUpperCase()}: ${limit}.`;
   });
 
-  const sections: RuleSection[] = [
+  const auctionSections: RuleSection[] = [
     {
       title: 'Tournament Overview',
       icon: 'building' as IconName,
@@ -157,10 +161,77 @@ export function RulesTab() {
     },
   ];
 
+  // ── Draft rules (used when config.mode === 'draft') ──────────────────────────
+  const scheduleText = getRoundSchedule(config).map((c, i) => `R${i + 1} ${c}`).join(', ');
+  const draftCatLines = config.categories
+    .filter((c) => c.draftCount > 0)
+    .map((c) => `${c.name.toUpperCase()}: each team drafts ${c.draftCount} (${config.totalTeams * c.draftCount} needed in the pool).`);
+  const usingGrid = canUseBalancedGrid(config);
+
+  const draftSections: RuleSection[] = [
+    {
+      title: 'Tournament Overview',
+      icon: 'building' as IconName,
+      items: [
+        { text: `${config.totalTeams} teams take part. Each team is led by a Captain and drafts players in turns — there is no bidding or budget.` },
+        { text: `Each squad has exactly ${config.playersPerTeam} players: 1 Captain (pre-assigned) + ${squadSize} drafted picks.` },
+        { text: `The draft runs for ${squadSize} rounds — ${totalSlots} picks in total (${config.totalTeams} teams × ${squadSize}).` },
+      ],
+    },
+    {
+      title: 'Draft Order',
+      icon: 'refresh' as IconName,
+      items: [
+        { text: 'Before the draft, teams are randomly shuffled into a base pick order (slots S1 onward) using a recorded seed, so the draw is fair and can be re-verified.', hl: true },
+        { text: 'Once confirmed, the base order is locked for the whole draft.' },
+      ],
+    },
+    {
+      title: 'Round Structure',
+      icon: 'layers' as IconName,
+      items: [
+        { text: `Each round draws from a single category. Schedule: ${scheduleText}.` },
+        ...draftCatLines.map((text) => ({ text })),
+      ],
+    },
+    {
+      title: 'Pick Order & Fairness',
+      icon: (usingGrid ? 'shield-check' : 'scale') as IconName,
+      hl: true,
+      items: usingGrid
+        ? [
+            { text: 'This draft uses the Balanced Custom Grid — a mathematically optimal schedule.', hl: true },
+            { text: "Every team's picks are balanced so no slot is systematically advantaged: within each category and overall, the pick-position totals are as equal as the maths allows." },
+          ]
+        : [
+            { text: 'This draft uses a snake order — the pick order reverses every round (first-to-last, then last-to-first), so the team picking last in one round picks first in the next.', hl: true },
+          ],
+    },
+    {
+      title: 'Making a Pick',
+      icon: 'gavel' as IconName,
+      items: [
+        { text: "On each pick, only undrafted players of the current round's category may be selected." },
+        { text: 'The operator selects a player for the team on the clock and confirms; the pick is recorded and the clock advances to the next team.' },
+        { text: 'The most recent pick can be undone. A pick can also be reassigned to the correct team from the Squads tab if a mistake is spotted later.' },
+      ],
+    },
+    {
+      title: 'Finalisation',
+      icon: 'check-circle' as IconName,
+      items: [
+        { text: `The draft is complete once all ${totalSlots} picks are made; final squads appear on the Squads tab.` },
+        { text: 'Results can be exported as CSV or JSON. No trades, swaps, or transfers are permitted after the draft concludes.' },
+      ],
+    },
+  ];
+
+  const sections = isDraft ? draftSections : auctionSections;
+
   return (
-    <main className={styles.page} aria-label="Official auction rules">
+    <main className={styles.page} aria-label={isDraft ? 'Official draft rules' : 'Official auction rules'}>
       <div className={styles.pageHeader}>
-        <h1 className={styles.pageTitle}>Official Auction Rules</h1>
+        <h1 className={styles.pageTitle}>Official {isDraft ? 'Draft' : 'Auction'} Rules</h1>
         <button
           className={styles.downloadBtn}
           onClick={handleDownload}
@@ -173,10 +244,12 @@ export function RulesTab() {
 
       <p className={styles.pageSubtitle}>
         {config.tournamentName} · {config.totalTeams} teams ·{' '}
-        {formatPts(config.budget)} pts budget per team ·{' '}
+        {isDraft
+          ? <>{squadSize} draft rounds</>
+          : <>{formatPts(config.budget)} pts budget per team</>} ·{' '}
         {config.playersPerTeam} players per squad (incl. captain)
         <br />
-        All captains must acknowledge these rules before bidding begins.
+        All captains must acknowledge these rules before {isDraft ? 'the draft begins' : 'bidding begins'}.
       </p>
 
       {sections.map((section, si) => (

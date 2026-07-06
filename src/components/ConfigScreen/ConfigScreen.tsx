@@ -2,6 +2,7 @@ import { useState, Fragment } from 'react';
 import type { TournamentConfig, CategoryDefinition, ValidationError, Player } from '@/types';
 import { DEFAULT_CONFIG, getSquadSize, getTotalSlots } from '@/constants/auction';
 import { validateConfig } from '@/utils/auction';
+import { validateDraftConfig } from '@/utils/draft';
 import { formatPts } from '@/utils/format';
 import { darken } from '@/utils/color';
 import { ImageUpload } from '@/components/ImageUpload/ImageUpload';
@@ -50,8 +51,35 @@ function Step1({ draft, onChange, errors, lockStructural }: Step1Props) {
     <div>
       <h2 className={styles.stepTitle}>Tournament Structure</h2>
       <p className={styles.stepDesc}>
-        Define the size and budget of your tournament. These settings apply globally to all teams.
+        Choose the format, then define the size of your tournament. These settings apply globally to all teams.
       </p>
+
+      {/* Mode selector — auction (bidding) vs draft (turn-based picking) */}
+      <div className={styles.modeToggle} role="group" aria-label="Tournament format">
+        <button
+          type="button"
+          className={`${styles.modeBtn} ${draft.mode !== 'draft' ? styles.modeBtnActive : ''}`}
+          onClick={() => onChange({ mode: 'auction' })}
+          disabled={lockStructural}
+          aria-pressed={draft.mode !== 'draft'}
+        >
+          <Icon name="gavel" size={18} />
+          <span className={styles.modeName}>Auction</span>
+          <span className={styles.modeDesc}>Teams bid points to buy players</span>
+        </button>
+        <button
+          type="button"
+          className={`${styles.modeBtn} ${draft.mode === 'draft' ? styles.modeBtnActive : ''}`}
+          onClick={() => onChange({ mode: 'draft' })}
+          disabled={lockStructural}
+          aria-pressed={draft.mode === 'draft'}
+        >
+          <Icon name="users" size={18} />
+          <span className={styles.modeName}>Draft</span>
+          <span className={styles.modeDesc}>Teams pick players in turns — no bidding</span>
+        </button>
+      </div>
+      {lockStructural && <p className={styles.hintLocked} style={{ marginTop: -8, marginBottom: 12 }}>Format is locked once players are acquired.</p>}
 
       <div className={styles.formGrid}>
         <div className={`${styles.formGroup} ${styles.formGroupFull} ${styles.logoRow}`}>
@@ -117,11 +145,12 @@ function Step1({ draft, onChange, errors, lockStructural }: Step1Props) {
             : lockStructural
               ? <span className={styles.hintLocked}>Locked — players have been sold</span>
               : <span className={styles.hint}>
-                  1 captain + {squadSize} auction pick{squadSize !== 1 ? 's' : ''}
+                  1 captain + {squadSize} {draft.mode === 'draft' ? 'draft' : 'auction'} pick{squadSize !== 1 ? 's' : ''}
                 </span>
           }
         </div>
 
+        {draft.mode !== 'draft' && (<>
         <div className={styles.formGroup}>
           <label className={styles.label}>Budget per Team (pts)</label>
           <div className={`${styles.catStepper} ${getErr(errors, 'budget') ? styles.catStepperError : ''}`}>
@@ -171,6 +200,7 @@ function Step1({ draft, onChange, errors, lockStructural }: Step1Props) {
             : <span className={styles.hint}>Bid cap reserve · 0 = no minimum hold-back · ±20 per click</span>
           }
         </div>
+        </>)}
       </div>
     </div>
   );
@@ -179,7 +209,7 @@ function Step1({ draft, onChange, errors, lockStructural }: Step1Props) {
 // ─── Category Helpers ─────────────────────────────────────────────────────────
 
 function blankCategory(): CategoryDefinition {
-  return { name: '', color: '#888888', bgColor: '#151515', min: 0, max: 0 };
+  return { name: '', color: '#888888', bgColor: '#151515', min: 0, max: 0, draftCount: 0 };
 }
 
 // ─── Step 2: Custom Categories ───────────────────────────────────────────────
@@ -237,12 +267,24 @@ function Step2({ draft, onChange, errors, setErrors, existingPlayers }: Step2Pro
     <div>
       <h2 className={styles.stepTitle}>Player Categories</h2>
       <p className={styles.stepDesc}>
-        Define tiers from highest to lowest. Unsold players demote to the next tier;
-        the lowest-tier unsold players get their base price halved. Set max to 0 for
-        no limit (capped by squad size of {squadSize}).
+        {draft.mode === 'draft'
+          ? <>Define tiers from highest to lowest and how many of each every team drafts. Rounds run tier by tier, and the per-team picks must add up to the squad size of {squadSize}.</>
+          : <>Define tiers from highest to lowest. Unsold players demote to the next tier; the lowest-tier unsold players get their base price halved. Set max to 0 for no limit (capped by squad size of {squadSize}).</>}
       </p>
 
+      {draft.mode === 'draft' && (() => {
+        const total = draft.categories.reduce((s, c) => s + (c.draftCount ?? 0), 0);
+        const ok = total === squadSize;
+        return (
+          <div className={`${styles.draftTotal} ${ok ? styles.draftTotalOk : styles.draftTotalBad}`} role="status">
+            <Icon name={ok ? 'check-circle' : 'alert-triangle'} size={14} />
+            Picks per team: {total} / {squadSize}{ok ? '' : ` — adjust to total ${squadSize}`}
+          </div>
+        );
+      })()}
+
       {catErr && <div className={styles.fieldError} style={{ marginBottom: 12 }}>{catErr}</div>}
+      {getErr(errors, 'draftCount') && <div className={styles.fieldError} style={{ marginBottom: 12 }}>{getErr(errors, 'draftCount')}</div>}
 
       <div className={styles.catList}>
         {cats.map((cat, i) => {
@@ -279,7 +321,7 @@ function Step2({ draft, onChange, errors, setErrors, existingPlayers }: Step2Pro
                 </div>
               </div>
 
-              <div className={styles.catFields}>
+              <div className={`${styles.catFields} ${draft.mode === 'draft' ? styles.catFieldsDraft : ''}`}>
                 <div className={styles.catFieldName}>
                   <label className={styles.label}>Name</label>
                   <input
@@ -303,41 +345,64 @@ function Step2({ draft, onChange, errors, setErrors, existingPlayers }: Step2Pro
                   />
                 </div>
 
-                <div className={styles.catFieldNum}>
-                  <label className={styles.label}>Min</label>
-                  <div className={styles.catStepper}>
-                    <button type="button" className={styles.catStepBtn}
-                      onClick={() => updateCat(i, { min: Math.max(0, cat.min - 1) })}
-                      aria-label="Decrease minimum" disabled={cat.min <= 0}
-                    ><Icon name="minus" size={10} /></button>
-                    <span className={styles.catStepVal}>{cat.min}</span>
-                    <button type="button" className={styles.catStepBtn}
-                      onClick={() => updateCat(i, { min: Math.min(squadSize, cat.min + 1) })}
-                      aria-label="Increase minimum" disabled={cat.min >= squadSize}
-                    ><Icon name="plus" size={10} /></button>
+                {draft.mode === 'draft' ? (
+                  <div className={styles.catFieldNum}>
+                    <label className={styles.label}>Picks/Team</label>
+                    <div className={styles.catStepper}>
+                      <button type="button" className={styles.catStepBtn}
+                        onClick={() => updateCat(i, { draftCount: Math.max(0, cat.draftCount - 1) })}
+                        aria-label="Decrease picks per team" disabled={cat.draftCount <= 0}
+                      ><Icon name="minus" size={10} /></button>
+                      <span className={styles.catStepVal}>{cat.draftCount}</span>
+                      <button type="button" className={styles.catStepBtn}
+                        onClick={() => updateCat(i, { draftCount: Math.min(squadSize, cat.draftCount + 1) })}
+                        aria-label="Increase picks per team" disabled={cat.draftCount >= squadSize}
+                      ><Icon name="plus" size={10} /></button>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <>
+                    <div className={styles.catFieldNum}>
+                      <label className={styles.label}>Min</label>
+                      <div className={styles.catStepper}>
+                        <button type="button" className={styles.catStepBtn}
+                          onClick={() => updateCat(i, { min: Math.max(0, cat.min - 1) })}
+                          aria-label="Decrease minimum" disabled={cat.min <= 0}
+                        ><Icon name="minus" size={10} /></button>
+                        <span className={styles.catStepVal}>{cat.min}</span>
+                        <button type="button" className={styles.catStepBtn}
+                          onClick={() => updateCat(i, { min: Math.min(squadSize, cat.min + 1) })}
+                          aria-label="Increase minimum" disabled={cat.min >= squadSize}
+                        ><Icon name="plus" size={10} /></button>
+                      </div>
+                    </div>
 
-                <div className={styles.catFieldNum}>
-                  <label className={styles.label}>Max</label>
-                  <div className={styles.catStepper}>
-                    <button type="button" className={styles.catStepBtn}
-                      onClick={() => updateCat(i, { max: Math.max(0, cat.max - 1) })}
-                      aria-label="Decrease maximum" disabled={cat.max <= 0}
-                    ><Icon name="minus" size={10} /></button>
-                    <span className={styles.catStepVal}>{cat.max}</span>
-                    <button type="button" className={styles.catStepBtn}
-                      onClick={() => updateCat(i, { max: Math.min(squadSize, cat.max + 1) })}
-                      aria-label="Increase maximum" disabled={cat.max >= squadSize}
-                    ><Icon name="plus" size={10} /></button>
-                  </div>
-                </div>
+                    <div className={styles.catFieldNum}>
+                      <label className={styles.label}>Max</label>
+                      <div className={styles.catStepper}>
+                        <button type="button" className={styles.catStepBtn}
+                          onClick={() => updateCat(i, { max: Math.max(0, cat.max - 1) })}
+                          aria-label="Decrease maximum" disabled={cat.max <= 0}
+                        ><Icon name="minus" size={10} /></button>
+                        <span className={styles.catStepVal}>{cat.max}</span>
+                        <button type="button" className={styles.catStepBtn}
+                          onClick={() => updateCat(i, { max: Math.min(squadSize, cat.max + 1) })}
+                          aria-label="Increase maximum" disabled={cat.max >= squadSize}
+                        ><Icon name="plus" size={10} /></button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               <span className={styles.hint}>
-                {cat.min > 0 ? `Min ${cat.min}` : 'No minimum'}
-                {' · '}
-                {cat.max > 0 ? `Max ${cat.max} per team` : 'No limit'}
+                {draft.mode === 'draft'
+                  ? `Each team drafts ${cat.draftCount} from this tier`
+                  : <>
+                      {cat.min > 0 ? `Min ${cat.min}` : 'No minimum'}
+                      {' · '}
+                      {cat.max > 0 ? `Max ${cat.max} per team` : 'No limit'}
+                    </>}
               </span>
             </div>
           );
@@ -367,13 +432,21 @@ function Step3({ draft, mode }: Step3Props) {
   const totalPot   = draft.totalTeams * draft.budget;
 
   const summaryItems = [
+    { label: 'Format',         value: draft.mode === 'draft' ? 'Draft' : 'Auction' },
     { label: 'Tournament',     value: draft.tournamentName || '—' },
     { label: 'Teams',          value: String(draft.totalTeams) },
     { label: 'Squad Size',     value: `${draft.playersPerTeam} (1 captain + ${squadSize} picks)` },
     { label: 'Total Slots',    value: String(totalSlots) },
-    { label: 'Budget / Team',  value: `${formatPts(draft.budget)} pts` },
-    { label: 'Total Pot',      value: `${formatPts(totalPot)} pts` },
-    { label: 'Min Reserve',    value: `${draft.minBidReserve} pts / slot` },
+    ...(draft.mode === 'draft'
+      ? [
+          { label: 'Rounds',      value: String(squadSize) },
+          { label: 'Total Picks', value: String(totalSlots) },
+        ]
+      : [
+          { label: 'Budget / Team', value: `${formatPts(draft.budget)} pts` },
+          { label: 'Total Pot',     value: `${formatPts(totalPot)} pts` },
+          { label: 'Min Reserve',   value: `${draft.minBidReserve} pts / slot` },
+        ]),
     { label: 'Categories',     value: `${draft.categories.length} tiers` },
   ];
 
@@ -405,9 +478,13 @@ function Step3({ draft, mode }: Step3Props) {
             <span className={styles.catSummaryDot} style={{ background: cat.color }} />
             <span className={styles.catSummaryName}>{cat.name}</span>
             <span className={styles.catSummaryLimits}>
-              {cat.min > 0 ? `min ${cat.min}` : ''}
-              {cat.min > 0 && cat.max > 0 ? ' · ' : ''}
-              {cat.max > 0 ? `max ${cat.max}` : cat.min === 0 ? 'no limit' : ''}
+              {draft.mode === 'draft'
+                ? `×${cat.draftCount} per team`
+                : <>
+                    {cat.min > 0 ? `min ${cat.min}` : ''}
+                    {cat.min > 0 && cat.max > 0 ? ' · ' : ''}
+                    {cat.max > 0 ? `max ${cat.max}` : cat.min === 0 ? 'no limit' : ''}
+                  </>}
             </span>
           </div>
         ))}
@@ -415,8 +492,10 @@ function Step3({ draft, mode }: Step3Props) {
 
       <div className={styles.confirmNote}>
         {mode === 'edit'
-          ? 'Your teams, players, and auction history will be preserved. Category renames will propagate to existing players.'
-          : 'After launching, you can add teams, upload logos and photos, add players with their base prices, then start the live auction. All data is auto-saved — a refresh won\'t lose progress.'
+          ? 'Your teams, players, and history will be preserved. Category renames will propagate to existing players.'
+          : draft.mode === 'draft'
+            ? 'After launching, add teams and players, then run the draft: shuffle the pick order, review the fairness preview, and pick players round by round. All data is auto-saved — a refresh won\'t lose progress.'
+            : 'After launching, you can add teams, upload logos and photos, add players with their base prices, then start the live auction. All data is auto-saved — a refresh won\'t lose progress.'
         }
       </div>
     </div>
@@ -467,10 +546,11 @@ export function ConfigScreen({
         } else {
           names.add(trimmed.toLowerCase());
         }
-        if (cat.max > 0 && cat.min > cat.max) {
+        if (draft.mode !== 'draft' && cat.max > 0 && cat.min > cat.max) {
           errs.push({ field: `cat_name_${i}`, message: 'Min cannot exceed max.' });
         }
       });
+      if (draft.mode === 'draft') errs.push(...validateDraftConfig(draft));
       if (errs.length) { setErrors(errs); return; }
     }
     setStep((s) => Math.min(3, s + 1) as Step);

@@ -1,8 +1,9 @@
 import type { TournamentConfig, Team, Player, SoldPlayer, Category } from '@/types';
+import type { DraftState } from '@/types/draft';
 
 // ─── Viewer Phase State Machine ─────────────────────────────────────────────
 
-export type ViewerPhase = 'IDLE' | 'BIDDING' | 'SOLD' | 'UNSOLD' | 'SQUAD_VIEW';
+export type ViewerPhase = 'IDLE' | 'BIDDING' | 'SOLD' | 'UNSOLD' | 'SQUAD_VIEW' | 'DRAFT';
 
 // ─── Sub-payloads ───────────────────────────────────────────────────────────
 
@@ -41,6 +42,20 @@ export interface SyncStateMessage {
   phase: ViewerPhase;
   bidding: BiddingPayload | null;
   lastSold: SoldPayload | null;
+  draftState: DraftState | null;
+}
+
+/**
+ * Push the live draft board to the projector (Event Mode, spec §2.20). Carries a
+ * fresh snapshot so the on-the-clock team updates immediately on each pick; the
+ * viewer derives the pick context from draftState + soldPlayers.
+ */
+export interface DraftClockMessage {
+  type: 'DRAFT_CLOCK';
+  draftState: DraftState;
+  teams: Team[];
+  players: Player[];
+  soldPlayers: SoldPlayer[];
 }
 
 export interface BiddingStartMessage {
@@ -102,7 +117,8 @@ export type LiveMessage =
   | ShowSquadsMessage
   | ShowIdleMessage
   | UndoSaleMessage
-  | BiddingSyncMessage;
+  | BiddingSyncMessage
+  | DraftClockMessage;
 
 // ─── Viewer → Admin Request ─────────────────────────────────────────────────
 

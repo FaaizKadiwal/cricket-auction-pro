@@ -1,20 +1,21 @@
-import type { Category, CategoryDefinition, TournamentConfig, TabId } from '@/types';
+import type { Category, CategoryDefinition, TournamentConfig, TournamentMode, TabId } from '@/types';
 import type { IconName } from '@/components/Icon/Icon';
 
 // ─── Default Categories ──────────────────────────────────────────────────────
 
 export const DEFAULT_CATEGORIES: CategoryDefinition[] = [
-  { name: 'Gold',   color: '#FFD700', bgColor: '#2a1f00', min: 0, max: 3 },
-  { name: 'Silver', color: '#C0C0C0', bgColor: '#1a1a2a', min: 0, max: 4 },
-  { name: 'Bronze', color: '#CD7F32', bgColor: '#1f0f00', min: 0, max: 4 },
+  { name: 'Gold',   color: '#FFD700', bgColor: '#2a1f00', min: 0, max: 3, draftCount: 2 },
+  { name: 'Silver', color: '#C0C0C0', bgColor: '#1a1a2a', min: 0, max: 4, draftCount: 3 },
+  { name: 'Bronze', color: '#CD7F32', bgColor: '#1f0f00', min: 0, max: 4, draftCount: 2 },
 ];
 
 // ─── Config Defaults ──────────────────────────────────────────────────────────
 
 export const DEFAULT_CONFIG: TournamentConfig = {
   tournamentName: 'Cricket Auction',
+  mode: 'auction',
   totalTeams: 6,
-  playersPerTeam: 8, // including captain → squadSize = 7
+  playersPerTeam: 8, // including captain → squadSize = 7 (draftCounts 2+3+2 = 7)
   budget: 3000,
   minBidReserve: 100,
   categories: DEFAULT_CATEGORIES,
@@ -28,9 +29,14 @@ export function getSquadSize(config: TournamentConfig): number {
   return config.playersPerTeam - 1;
 }
 
-/** Total auctionable slots across the tournament = teams × squad size. */
+/** Total auctionable/draftable slots across the tournament = teams × squad size. */
 export function getTotalSlots(config: TournamentConfig): number {
   return config.totalTeams * getSquadSize(config);
+}
+
+/** The tournament mode, tolerant of legacy configs saved before the field existed. */
+export function getMode(config: TournamentConfig): TournamentMode {
+  return config.mode ?? 'auction';
 }
 
 // ─── Category Helpers ────────────────────────────────────────────────────────
@@ -127,13 +133,20 @@ export const STORAGE_KEYS = {
   PLAYERS:      'cap_players',
   SOLD_PLAYERS: 'cap_sold_players',
   ACTIVE_TAB:   'cap_tab',
+  DRAFT:        'cap_draft',
 } as const;
 
 // ─── Navigation Tabs ──────────────────────────────────────────────────────────
 
-export const TABS: { id: TabId; label: string; icon: IconName }[] = [
-  { id: 'setup',   label: 'Setup',   icon: 'settings' },
-  { id: 'auction', label: 'Auction', icon: 'gavel'    },
-  { id: 'squads',  label: 'Squads',  icon: 'users'    },
-  { id: 'rules',   label: 'Rules',   icon: 'list'     },
-];
+/** Navigation tabs for the current mode — the middle tab is Auction or Draft. */
+export function getTabs(mode: TournamentMode): { id: TabId; label: string; icon: IconName }[] {
+  const mid: { id: TabId; label: string; icon: IconName } = mode === 'draft'
+    ? { id: 'draft',   label: 'Draft',   icon: 'layers' }
+    : { id: 'auction', label: 'Auction', icon: 'gavel'  };
+  return [
+    { id: 'setup',  label: 'Setup',  icon: 'settings' },
+    mid,
+    { id: 'squads', label: 'Squads', icon: 'users'    },
+    { id: 'rules',  label: 'Rules',  icon: 'list'     },
+  ];
+}

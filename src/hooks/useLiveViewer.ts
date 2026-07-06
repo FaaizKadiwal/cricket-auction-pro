@@ -1,5 +1,6 @@
 import { useEffect, useReducer, useRef } from 'react';
 import type { TournamentConfig, Team, Player, SoldPlayer } from '@/types';
+import type { DraftState } from '@/types/draft';
 import type { ViewerPhase, BiddingPayload, SoldPayload, LiveMessage } from '@/types/live';
 import { LIVE_CHANNEL_NAME, MAX_LOG_ENTRIES } from '@/constants/auction';
 
@@ -14,6 +15,7 @@ export interface ViewerState {
   bidding: BiddingPayload | null;
   lastSold: SoldPayload | null;
   unsoldInfo: { player: Player; demoted: boolean; newCategory?: string; halvedInPlace?: boolean } | null;
+  draftState: DraftState | null;
   connected: boolean;
 }
 
@@ -26,6 +28,7 @@ const initialState: ViewerState = {
   bidding: null,
   lastSold: null,
   unsoldInfo: null,
+  draftState: null,
   connected: false,
 };
 
@@ -46,9 +49,20 @@ function viewerReducer(state: ViewerState, action: ViewerAction): ViewerState {
         soldPlayers: action.soldPlayers,
         bidding: action.bidding,
         lastSold: action.lastSold,
+        draftState: action.draftState,
         // Preserve unsoldInfo if phase stays UNSOLD — sync fires every 3 s and
         // doesn't carry unsoldInfo, so clearing it would blank the overlay mid-display.
         unsoldInfo: action.phase === 'UNSOLD' ? state.unsoldInfo : null,
+      };
+
+    case 'DRAFT_CLOCK':
+      return {
+        ...state,
+        phase: 'DRAFT',
+        draftState: action.draftState,
+        teams: action.teams,
+        players: action.players,
+        soldPlayers: action.soldPlayers,
       };
 
     case 'BIDDING_START':

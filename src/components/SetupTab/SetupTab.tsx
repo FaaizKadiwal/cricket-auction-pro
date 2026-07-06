@@ -1,6 +1,6 @@
 import { useState, useCallback, useId, useMemo, useEffect } from 'react';
 import type { Team, Player, Category, ValidationError } from '@/types';
-import { getCategoryStyle, getCategoryNames, getTotalSlots } from '@/constants/auction';
+import { getCategoryStyle, getCategoryNames, getTotalSlots, getMode } from '@/constants/auction';
 import { validatePlayerForm, countByCategory } from '@/utils/auction';
 import { formatPts } from '@/utils/format';
 import { useTournament } from '@/context/TournamentContext';
@@ -107,6 +107,7 @@ interface PlayerFormProps {
 
 function PlayerForm({ editingPlayer, onAdd, onUpdate, onCancelEdit }: PlayerFormProps) {
   const { config } = useTournament();
+  const isDraft = getMode(config) === 'draft';
   const catNames = getCategoryNames(config);
   const [name,        setName]        = useState('');
   const [description, setDescription] = useState('');
@@ -145,8 +146,10 @@ function PlayerForm({ editingPlayer, onAdd, onUpdate, onCancelEdit }: PlayerForm
   const getErr = (f: string) => errors.find((e) => e.field === f)?.message;
 
   function handleSubmit() {
-    const price = Number(basePrice);
-    const errs  = validatePlayerForm(name, price);
+    const price = isDraft ? 0 : Number(basePrice);
+    // Draft mode has no bidding, so base price is irrelevant — validate the name only.
+    let errs = validatePlayerForm(name, price);
+    if (isDraft) errs = errs.filter((e) => e.field !== 'basePrice');
     if (errs.length) { setErrors(errs); return; }
 
     const data = { name: name.trim(), description: description.trim(), category, basePrice: price, photoBase64: photo };
@@ -220,20 +223,22 @@ function PlayerForm({ editingPlayer, onAdd, onUpdate, onCancelEdit }: PlayerForm
         </select>
       </div>
 
-      <div className={styles.formGroup} style={{ marginBottom: 10 }}>
-        <label className={styles.formLabel} htmlFor={priceId}>Base Price (pts)</label>
-        <input
-          id={priceId}
-          className={`${styles.formInput} ${getErr('basePrice') ? styles.formInputError : ''}`}
-          style={{ fontFamily: 'var(--font-mono)' }}
-          type="number" min={1}
-          value={basePrice}
-          placeholder="e.g. 400"
-          onChange={(e) => { setBasePrice(e.target.value); setErrors([]); }}
-          aria-invalid={!!getErr('basePrice')}
-        />
-        {getErr('basePrice') && <p className={styles.formError} role="alert">{getErr('basePrice')}</p>}
-      </div>
+      {!isDraft && (
+        <div className={styles.formGroup} style={{ marginBottom: 10 }}>
+          <label className={styles.formLabel} htmlFor={priceId}>Base Price (pts)</label>
+          <input
+            id={priceId}
+            className={`${styles.formInput} ${getErr('basePrice') ? styles.formInputError : ''}`}
+            style={{ fontFamily: 'var(--font-mono)' }}
+            type="number" min={1}
+            value={basePrice}
+            placeholder="e.g. 400"
+            onChange={(e) => { setBasePrice(e.target.value); setErrors([]); }}
+            aria-invalid={!!getErr('basePrice')}
+          />
+          {getErr('basePrice') && <p className={styles.formError} role="alert">{getErr('basePrice')}</p>}
+        </div>
+      )}
 
       <button className={styles.addBtn} onClick={handleSubmit}>
         {isEditing ? <><Icon name="save" size={14} /> Save Changes</> : '+ Add Player'}
@@ -258,6 +263,7 @@ interface PlayerTableProps {
 
 function PlayerTable({ players, editingPlayerId, onRemove, onEdit }: PlayerTableProps) {
   const { config } = useTournament();
+  const isDraft = getMode(config) === 'draft';
 
   if (players.length === 0) {
     return (
@@ -274,7 +280,7 @@ function PlayerTable({ players, editingPlayerId, onRemove, onEdit }: PlayerTable
         <tr>
           <th scope="col">Player</th>
           <th scope="col">Category</th>
-          <th scope="col">Base</th>
+          {!isDraft && <th scope="col">Base</th>}
           <th scope="col"><span className="sr-only">Actions</span></th>
         </tr>
       </thead>
@@ -306,9 +312,9 @@ function PlayerTable({ players, editingPlayerId, onRemove, onEdit }: PlayerTable
                   {p.category}
                 </span>
               </td>
-              <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>
+              {!isDraft && <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>
                 {formatPts(p.basePrice)}
-              </td>
+              </td>}
               <td>
                 <div className={styles.actionCell}>
                   {p.status === 'pending' && (
@@ -351,6 +357,7 @@ type View = 'teams' | 'players';
 
 export function SetupTab({ teams, onTeamsChange, players, onPlayersChange }: SetupTabProps) {
   const { config } = useTournament();
+  const isDraft = getMode(config) === 'draft';
   const [view, setView] = useState<View>('teams');
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [playerSearch, setPlayerSearch] = useState('');
@@ -420,7 +427,7 @@ export function SetupTab({ teams, onTeamsChange, players, onPlayersChange }: Set
       <div className={styles.pageHeader}>
         <h1 className={styles.pageTitle}>Tournament Setup</h1>
         <p className={styles.pageSubtitle}>
-          Configure all {config.totalTeams} teams and build the player pool before starting the auction.
+          Configure all {config.totalTeams} teams and build the player pool before starting the {isDraft ? 'draft' : 'auction'}.
         </p>
       </div>
 
@@ -431,13 +438,17 @@ export function SetupTab({ teams, onTeamsChange, players, onPlayersChange }: Set
           <span className={styles.statValue}>{config.totalTeams}</span>
         </div>
         <div className={styles.statDivider} aria-hidden="true" />
-        <div className={styles.statItem}>
-          <span className={styles.statLabel}>Budget / Team</span>
-          <span className={styles.statValue} style={{ fontFamily: 'var(--font-mono)', fontSize: 16 }}>
-            {formatPts(config.budget)}
-          </span>
-        </div>
-        <div className={styles.statDivider} aria-hidden="true" />
+        {!isDraft && (
+          <>
+            <div className={styles.statItem}>
+              <span className={styles.statLabel}>Budget / Team</span>
+              <span className={styles.statValue} style={{ fontFamily: 'var(--font-mono)', fontSize: 16 }}>
+                {formatPts(config.budget)}
+              </span>
+            </div>
+            <div className={styles.statDivider} aria-hidden="true" />
+          </>
+        )}
         {config.categories.map((cat) => (
           <div key={cat.name} className={styles.statItem}>
             <span className={styles.statLabel} style={{ color: cat.color }}>{cat.name}</span>

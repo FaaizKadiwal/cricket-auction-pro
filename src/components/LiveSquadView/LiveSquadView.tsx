@@ -1,6 +1,6 @@
 import { useMemo, memo } from 'react';
 import type { TournamentConfig, Team, SoldPlayer } from '@/types';
-import { getCategoryStyle, getSquadSize } from '@/constants/auction';
+import { getCategoryStyle, getSquadSize, getMode } from '@/constants/auction';
 import { getSquad, getSpent } from '@/utils/auction';
 import { formatPts, teamLabel } from '@/utils/format';
 import { Avatar } from '@/components/Avatar/Avatar';
@@ -38,6 +38,7 @@ interface TeamCardProps {
 }
 
 const TeamCard = memo(function TeamCard({ team, soldPlayers, config, squadSize }: TeamCardProps) {
+  const isDraft = getMode(config) === 'draft';
   const squad = useMemo(() => getSquad(team.id, soldPlayers), [team.id, soldPlayers]);
   const spent = useMemo(() => getSpent(team.id, soldPlayers), [team.id, soldPlayers]);
   const remaining = config.budget - spent;
@@ -72,7 +73,7 @@ const TeamCard = memo(function TeamCard({ team, soldPlayers, config, squadSize }
             <div key={p.id} className={styles.playerRow}>
               <span className={styles.catDot} style={{ background: getCategoryStyle(config, p.category).color }} />
               <span className={styles.pName}>{p.name}</span>
-              <span className={styles.pPrice}>{formatPts(p.finalPrice)}</span>
+              {!isDraft && <span className={styles.pPrice}>{formatPts(p.finalPrice)}</span>}
             </div>
           ))
         )}
@@ -80,14 +81,18 @@ const TeamCard = memo(function TeamCard({ team, soldPlayers, config, squadSize }
 
       {/* Footer */}
       <div className={styles.cardFooter}>
-        <div className={styles.footerStat}>
-          <span className={styles.footerLabel}>Spent</span>
-          <span className={styles.footerValue} style={{ color: 'var(--danger)' }}>{formatPts(spent)}</span>
-        </div>
-        <div className={styles.footerStat}>
-          <span className={styles.footerLabel}>Remaining</span>
-          <span className={styles.footerValue} style={{ color: 'var(--success)' }}>{formatPts(remaining)}</span>
-        </div>
+        {!isDraft && (
+          <div className={styles.footerStat}>
+            <span className={styles.footerLabel}>Spent</span>
+            <span className={styles.footerValue} style={{ color: 'var(--danger)' }}>{formatPts(spent)}</span>
+          </div>
+        )}
+        {!isDraft && (
+          <div className={styles.footerStat}>
+            <span className={styles.footerLabel}>Remaining</span>
+            <span className={styles.footerValue} style={{ color: 'var(--success)' }}>{formatPts(remaining)}</span>
+          </div>
+        )}
         <div className={styles.catPills}>
           <CategoryPills teamId={team.id} soldPlayers={soldPlayers} config={config} />
         </div>

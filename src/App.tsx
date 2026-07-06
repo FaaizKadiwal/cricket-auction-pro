@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { TabId, Team, Player, SoldPlayer, TournamentConfig, DemotionResult, BidValidationResult } from '@/types';
-import { DEFAULT_TEAM_COLORS, STORAGE_KEYS } from '@/constants/auction';
+import type { DraftState } from '@/types/draft';
+import { DEFAULT_TEAM_COLORS, STORAGE_KEYS, getMode } from '@/constants/auction';
 import { validateSaleEdit } from '@/utils/auction';
+import { buildBackup, parseBackup, type BackupData } from '@/utils/backup';
+import { downloadFile } from '@/utils/export';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useToast } from '@/hooks/useToast';
 import { useBroadcast } from '@/hooks/useBroadcast';
@@ -14,6 +17,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import styles from '@/App.module.css';
 import { SetupTab } from '@/components/SetupTab/SetupTab';
 import { AuctionTab } from '@/components/AuctionTab/AuctionTab';
+import { DraftTab } from '@/components/DraftTab/DraftTab';
 import { SquadsTab } from '@/components/SquadsTab/SquadsTab';
 import { RulesTab } from '@/components/RulesTab/RulesTab';
 
@@ -40,10 +44,14 @@ export default function App() {
   const [teams,       setTeams]       = useLocalStorage<Team[]>(STORAGE_KEYS.TEAMS, []);
   const [players,     setPlayers]     = useLocalStorage<Player[]>(STORAGE_KEYS.PLAYERS, []);
   const [soldPlayers, setSoldPlayers] = useLocalStorage<SoldPlayer[]>(STORAGE_KEYS.SOLD_PLAYERS, []);
+  const [draftState,  setDraftState]  = useLocalStorage<DraftState | null>(STORAGE_KEYS.DRAFT, null);
+
+  const mode = config ? getMode(config) : 'auction';
 
   const { toasts, exitingIds, showToast, dismissToast } = useToast(5000);
   const [showConfigEditor, setShowConfigEditor] = useState(false);
   const [confirmingReset, setConfirmingReset] = useState(false);
+  const [pendingBackup, setPendingBackup] = useState<BackupData | null>(null);
 
   // Warn the operator if a localStorage write fails (throttled — a burst of
   // failing writes across keys should surface a single warning, not a flood).
@@ -60,7 +68,7 @@ export default function App() {
   }, [showToast]);
 
   // Live viewer broadcast (only responds to sync when config exists)
-  const broadcast = useBroadcast({ config, teams, players, soldPlayers });
+  const broadcast = useBroadcast({ config, teams, players, soldPlayers, draftState });
 
   // Keep SoldPlayer.teamName / teamColor in sync when teams are edited
   useEffect(() => {
@@ -80,17 +88,32 @@ export default function App() {
     );
   }, [teams]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Keep the middle tab consistent with the mode (draft ↔ auction), e.g. after
+  // switching format or loading a legacy tab id.
+  useEffect(() => {
+    if (!config) return;
+    if (mode === 'draft' && activeTab === 'auction') setActiveTab('draft');
+    else if (mode === 'auction' && activeTab === 'draft') setActiveTab('auction');
+  }, [mode, activeTab, config, setActiveTab]);
+
   // ── Config Wizard ──────────────────────────────────────────────────────────
 
   const handleLaunch = useCallback(
     (newConfig: TournamentConfig) => {
+      const newTeams = buildTeams(newConfig.totalTeams);
       setConfig(newConfig);
-      setTeams(buildTeams(newConfig.totalTeams));
+      setTeams(newTeams);
       setPlayers([]);
       setSoldPlayers([]);
       setActiveTab('setup');
+      // Seed the draft state for draft tournaments (starts at the captain draw).
+      setDraftState(
+        newConfig.mode === 'draft'
+          ? { phase: 'captains', baseOrder: newTeams.map((t) => t.id), seed: '', captainSeed: '' }
+          : null
+      );
     },
-    [setConfig, setTeams, setPlayers, setSoldPlayers, setActiveTab]
+    [setConfig, setTeams, setPlayers, setSoldPlayers, setActiveTab, setDraftState]
   );
 
   const confirmReset = useCallback(() => {
@@ -99,8 +122,38 @@ export default function App() {
     setTeams([]);
     setPlayers([]);
     setSoldPlayers([]);
+    setDraftState(null);
     setActiveTab('setup');
-  }, [setConfig, setTeams, setPlayers, setSoldPlayers, setActiveTab]);
+  }, [setConfig, setTeams, setPlayers, setSoldPlayers, setDraftState, setActiveTab]);
+
+  // ── Backup / Restore (spec §2.19) ────────────────────────────────────────────
+
+  const handleExportBackup = useCallback(() => {
+    if (!config) return;
+    const json = buildBackup({ config, teams, players, soldPlayers, draftState, exportedAt: new Date().toISOString() });
+    const base = (config.tournamentName || 'tournament').replace(/[^\w-]+/g, '_') || 'tournament';
+    downloadFile(`${base}_backup.json`, json, 'application/json');
+    showToast('Backup exported.', 'ok');
+  }, [config, teams, players, soldPlayers, draftState, showToast]);
+
+  const handleImportBackup = useCallback((text: string) => {
+    const result = parseBackup(text);
+    if (!result.ok) { showToast(result.error, 'warn'); return; }
+    setPendingBackup(result.data); // require explicit confirmation before overwriting (§2.19.2)
+  }, [showToast]);
+
+  const applyBackup = useCallback(() => {
+    if (!pendingBackup) return;
+    const d = pendingBackup;
+    setConfig(d.config);
+    setTeams(d.teams);
+    setPlayers(d.players);
+    setSoldPlayers(d.soldPlayers);
+    setDraftState(d.draftState);
+    setActiveTab('setup');
+    setPendingBackup(null);
+    showToast('Backup restored.', 'ok');
+  }, [pendingBackup, setConfig, setTeams, setPlayers, setSoldPlayers, setDraftState, setActiveTab, showToast]);
 
   const handleConfigSave = useCallback(
     (newConfig: TournamentConfig) => {
@@ -178,6 +231,7 @@ export default function App() {
         teamName:  team.name,
         teamColor: team.color,
         finalPrice,
+        soldAt:    new Date().toISOString(),
       };
 
       setSoldPlayers((prev) => [...prev, soldEntry]);
@@ -311,6 +365,8 @@ export default function App() {
           soldPlayers={soldPlayers}
           onReset={() => setConfirmingReset(true)}
           onEditConfig={() => setShowConfigEditor(true)}
+          onExportBackup={handleExportBackup}
+          onImportBackup={handleImportBackup}
         />
 
         <main className={styles.main} id="main-content">
@@ -325,7 +381,7 @@ export default function App() {
             </ErrorBoundary>
           )}
 
-          {activeTab === 'auction' && (
+          {activeTab === 'auction' && mode === 'auction' && (
             <ErrorBoundary fallbackLabel="Auction Tab">
               <AuctionTab
                 teams={teams}
@@ -334,6 +390,23 @@ export default function App() {
                 onSell={handleSell}
                 onUnsold={handleUnsold}
                 onUndoLastSale={handleUndoLastSale}
+                onToast={showToast}
+                broadcast={broadcast}
+              />
+            </ErrorBoundary>
+          )}
+
+          {activeTab === 'draft' && mode === 'draft' && draftState && (
+            <ErrorBoundary fallbackLabel="Draft Tab">
+              <DraftTab
+                teams={teams}
+                players={players}
+                soldPlayers={soldPlayers}
+                draftState={draftState}
+                onDraftStateChange={setDraftState}
+                onTeamsChange={setTeams}
+                onPick={handleSell}
+                onUndoPick={handleUndoLastSale}
                 onToast={showToast}
                 broadcast={broadcast}
               />
@@ -376,6 +449,17 @@ export default function App() {
           tone="danger"
           onConfirm={confirmReset}
           onCancel={() => setConfirmingReset(false)}
+        />
+      )}
+
+      {pendingBackup && (
+        <ConfirmDialog
+          title="Restore this backup?"
+          message={`This replaces the current tournament with the backup "${pendingBackup.config.tournamentName || 'Untitled'}" (${pendingBackup.teams.length} teams, ${pendingBackup.players.length} players). Your current data will be overwritten.`}
+          confirmLabel="Restore backup"
+          tone="danger"
+          onConfirm={applyBackup}
+          onCancel={() => setPendingBackup(null)}
         />
       )}
     </TournamentProvider>

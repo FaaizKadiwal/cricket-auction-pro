@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useCallback } from 'react';
 import type { TournamentConfig, Team, Player, SoldPlayer, Category } from '@/types';
+import type { DraftState } from '@/types/draft';
 import type {
   LiveMessage, SyncStateMessage, BiddingPayload, BidLogEntry, SoldPayload, ViewerPhase, ChannelMessage,
 } from '@/types/live';
@@ -12,6 +13,7 @@ interface UseBroadcastParams {
   teams: Team[];
   players: Player[];
   soldPlayers: SoldPlayer[];
+  draftState: DraftState | null;
 }
 
 // ─── Return type ────────────────────────────────────────────────────────────
@@ -26,11 +28,12 @@ export interface BroadcastHandle {
   broadcastShowIdle:     () => void;
   broadcastUndoSale:     (allSold: SoldPlayer[], allPlayers: Player[]) => void;
   broadcastBiddingSync:  (bidding: BiddingPayload) => void;
+  broadcastDraftClock:   () => void;
 }
 
 // ─── Hook ───────────────────────────────────────────────────────────────────
 
-export function useBroadcast({ config, teams, players, soldPlayers }: UseBroadcastParams): BroadcastHandle {
+export function useBroadcast({ config, teams, players, soldPlayers, draftState }: UseBroadcastParams): BroadcastHandle {
   const channelRef = useRef<BroadcastChannel | null>(null);
 
   // Keep latest values in refs so SYNC_REQUEST handler reads fresh data
@@ -38,6 +41,7 @@ export function useBroadcast({ config, teams, players, soldPlayers }: UseBroadca
   const teamsRef       = useRef(teams);
   const playersRef     = useRef(players);
   const soldPlayersRef = useRef(soldPlayers);
+  const draftStateRef  = useRef(draftState);
   const phaseRef       = useRef<ViewerPhase>('IDLE');
   const biddingRef     = useRef<BiddingPayload | null>(null);
   const lastSoldRef    = useRef<SoldPayload | null>(null);
@@ -46,6 +50,7 @@ export function useBroadcast({ config, teams, players, soldPlayers }: UseBroadca
   teamsRef.current       = teams;
   playersRef.current     = players;
   soldPlayersRef.current = soldPlayers;
+  draftStateRef.current  = draftState;
 
   // Send helper
   const send = useCallback((msg: LiveMessage) => {
@@ -75,6 +80,7 @@ export function useBroadcast({ config, teams, players, soldPlayers }: UseBroadca
           phase:       phaseRef.current,
           bidding:     biddingRef.current,
           lastSold:    lastSoldRef.current,
+          draftState:  draftStateRef.current,
         };
         ch.postMessage(sync);
       }
@@ -146,15 +152,29 @@ export function useBroadcast({ config, teams, players, soldPlayers }: UseBroadca
     send({ type: 'BIDDING_SYNC', bidding });
   }, [send]);
 
+  // Push the draft board to the projector with a fresh snapshot (Event Mode).
+  const broadcastDraftClock = useCallback(() => {
+    const ds = draftStateRef.current;
+    if (!ds) return;
+    phaseRef.current = 'DRAFT';
+    send({
+      type: 'DRAFT_CLOCK',
+      draftState:  ds,
+      teams:       teamsRef.current,
+      players:     playersRef.current,
+      soldPlayers: soldPlayersRef.current,
+    });
+  }, [send]);
+
   // Stable handle — every method is a stable useCallback, so consumers (and the
   // memo()'d BidTeamPanel) don't churn when App re-renders for unrelated reasons.
   return useMemo(() => ({
     broadcastBiddingStart, broadcastBidUpdate, broadcastSold, broadcastUnsold,
     broadcastBiddingCancel, broadcastShowSquads, broadcastShowIdle, broadcastUndoSale,
-    broadcastBiddingSync,
+    broadcastBiddingSync, broadcastDraftClock,
   }), [
     broadcastBiddingStart, broadcastBidUpdate, broadcastSold, broadcastUnsold,
     broadcastBiddingCancel, broadcastShowSquads, broadcastShowIdle, broadcastUndoSale,
-    broadcastBiddingSync,
+    broadcastBiddingSync, broadcastDraftClock,
   ]);
 }

@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState, memo } from 'react';
 import type { Team, SoldPlayer, BidValidationResult } from '@/types';
-import { getCategoryStyle } from '@/constants/auction';
+import { getCategoryStyle, getMode } from '@/constants/auction';
 import { getSquad, getSpent, getCategoryNeeds } from '@/utils/auction';
 import { formatPts, teamLabel } from '@/utils/format';
 import { useTournament } from '@/context/TournamentContext';
@@ -21,6 +21,7 @@ interface TeamSquadCardProps {
 const TeamSquadCard = memo(function TeamSquadCard({ team, soldPlayers, onEditPlayer }: TeamSquadCardProps) {
   const { config, squadSize } = useTournament();
 
+  const isDraft = getMode(config) === 'draft';
   const squad   = useMemo(() => getSquad(team.id, soldPlayers), [team.id, soldPlayers]);
   const spent   = useMemo(() => getSpent(team.id, soldPlayers), [team.id, soldPlayers]);
   const remain  = config.budget - spent;
@@ -117,12 +118,12 @@ const TeamSquadCard = memo(function TeamSquadCard({ team, soldPlayers, onEditPla
                   <span className={styles.playerNameText}>{p.name}</span>
                 </div>
                 <div className={styles.playerRight}>
-                  <span className={styles.playerPrice}>{formatPts(p.finalPrice)}</span>
+                  {!isDraft && <span className={styles.playerPrice}>{formatPts(p.finalPrice)}</span>}
                   <button
                     className={styles.editSaleBtn}
                     onClick={() => onEditPlayer(p)}
-                    aria-label={`Correct sale for ${p.name}`}
-                    title="Reassign team / fix price"
+                    aria-label={isDraft ? `Reassign ${p.name}` : `Correct sale for ${p.name}`}
+                    title={isDraft ? 'Reassign to another team' : 'Reassign team / fix price'}
                   ><Icon name="pencil" size={12} /></button>
                 </div>
               </div>
@@ -133,18 +134,22 @@ const TeamSquadCard = memo(function TeamSquadCard({ team, soldPlayers, onEditPla
 
       {/* Footer */}
       <div className={styles.cardFooter}>
-        <div className={styles.footerStat}>
-          <span className={styles.footerLabel}>Spent</span>
-          <span className={styles.footerValue} style={{ color: 'var(--danger)' }}>
-            {formatPts(spent)}
-          </span>
-        </div>
-        <div className={styles.footerStat}>
-          <span className={styles.footerLabel}>Remaining</span>
-          <span className={styles.footerValue} style={{ color: 'var(--success)' }}>
-            {formatPts(remain)}
-          </span>
-        </div>
+        {!isDraft && (
+          <div className={styles.footerStat}>
+            <span className={styles.footerLabel}>Spent</span>
+            <span className={styles.footerValue} style={{ color: 'var(--danger)' }}>
+              {formatPts(spent)}
+            </span>
+          </div>
+        )}
+        {!isDraft && (
+          <div className={styles.footerStat}>
+            <span className={styles.footerLabel}>Remaining</span>
+            <span className={styles.footerValue} style={{ color: 'var(--success)' }}>
+              {formatPts(remain)}
+            </span>
+          </div>
+        )}
 
         {/* Category breakdown */}
         <div className={styles.catRow}>
@@ -177,6 +182,7 @@ interface SquadsTabProps {
 
 export function SquadsTab({ teams, soldPlayers, onEditSale, onReturnToPool, onToast }: SquadsTabProps) {
   const { config } = useTournament();
+  const isDraft = getMode(config) === 'draft';
   const [editingSale, setEditingSale] = useState<SoldPlayer | null>(null);
 
   const handleEditPlayer = useCallback((sold: SoldPlayer) => setEditingSale(sold), []);
@@ -184,9 +190,9 @@ export function SquadsTab({ teams, soldPlayers, onEditSale, onReturnToPool, onTo
   const handleReturnToPool = useCallback(() => {
     if (!editingSale) return;
     onReturnToPool(editingSale.id);
-    onToast(`${editingSale.name} returned to the pool for re-auction`, 'warn');
+    onToast(`${editingSale.name} returned to the pool for ${isDraft ? 're-draft' : 're-auction'}`, 'warn');
     setEditingSale(null);
-  }, [editingSale, onReturnToPool, onToast]);
+  }, [editingSale, onReturnToPool, onToast, isDraft]);
 
   const handleSubmitEdit = useCallback(
     (teamId: number, price: number): BidValidationResult => {
@@ -194,20 +200,21 @@ export function SquadsTab({ teams, soldPlayers, onEditSale, onReturnToPool, onTo
       const result = onEditSale(editingSale.id, teamId, price);
       if (result.valid) {
         const team = teams.find((t) => t.id === teamId);
-        onToast(`${editingSale.name} → ${team ? teamLabel(team) : `Team ${teamId}`} for ${formatPts(price)} pts`, 'ok');
+        const dest = team ? teamLabel(team) : `Team ${teamId}`;
+        onToast(isDraft ? `${editingSale.name} reassigned to ${dest}` : `${editingSale.name} → ${dest} for ${formatPts(price)} pts`, 'ok');
       } else if (result.reason) {
         onToast(result.reason, 'warn');
       }
       return result;
     },
-    [editingSale, onEditSale, onToast, teams]
+    [editingSale, onEditSale, onToast, teams, isDraft]
   );
 
   return (
     <main className={styles.page} aria-label="Final squads overview">
       <h1 className={styles.pageTitle}>Final Squads</h1>
       <p className={styles.pageSubtitle}>
-        Complete roster and budget overview for all {config.totalTeams} teams
+        Complete roster{isDraft ? '' : ' and budget'} overview for all {config.totalTeams} teams
       </p>
       <div className={styles.grid}>
         {teams.map((team) => (

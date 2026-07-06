@@ -58,6 +58,7 @@ export function downloadRulesPdf(
   subtitle: string,
   sections: PdfRuleSection[],
   filename: string,
+  heading = 'OFFICIAL AUCTION RULES',
 ): void {
   const pdf = new jsPDF('p', 'mm', 'a4');
   let y = MARGIN;
@@ -74,7 +75,7 @@ export function downloadRulesPdf(
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(22);
   pdf.setTextColor(20, 20, 20);
-  pdf.text('OFFICIAL AUCTION RULES', PAGE_W / 2, y + 8, { align: 'center' });
+  pdf.text(heading, PAGE_W / 2, y + 8, { align: 'center' });
   y += 14;
 
   // ── Tournament name ──────────────────────────────────────────────────────

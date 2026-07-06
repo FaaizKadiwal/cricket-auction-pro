@@ -113,6 +113,21 @@
   border-color: var(--success);
 }
 
+.iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+.iconBtn:hover { color: var(--accent); border-color: var(--accent); }
+
 .editConfigBtn {
   padding: 6px 12px;
   border-radius: 6px;

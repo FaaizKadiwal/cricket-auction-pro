@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { TournamentConfig, Team, SoldPlayer } from '@/types';
-import { getTotalSlots } from '@/constants/auction';
+import { getTotalSlots, getMode } from '@/constants/auction';
 import { getTotalSpent } from '@/utils/auction';
 import styles from './LiveIdleScreen.module.css';
 
@@ -11,6 +11,7 @@ interface LiveIdleScreenProps {
 }
 
 export function LiveIdleScreen({ config, soldPlayers, teams }: LiveIdleScreenProps) {
+  const isDraft = getMode(config) === 'draft';
   const totalSlots = getTotalSlots(config);
 
   const stats = useMemo(() => ({
@@ -35,22 +36,26 @@ export function LiveIdleScreen({ config, soldPlayers, teams }: LiveIdleScreenPro
       {/* Tournament name */}
       <h1 className={styles.title}>{config.tournamentName}</h1>
 
-      {/* Auction stats */}
+      {/* Stats */}
       <div className={styles.statsRow}>
         <div className={styles.stat}>
           <span className={styles.statValue}>{stats.sold}</span>
-          <span className={styles.statLabel}>of {stats.total} Sold</span>
+          <span className={styles.statLabel}>of {stats.total} {isDraft ? 'Drafted' : 'Sold'}</span>
         </div>
         <div className={styles.statDivider} />
         <div className={styles.stat}>
           <span className={styles.statValue}>{stats.teamCount}</span>
           <span className={styles.statLabel}>Teams</span>
         </div>
-        <div className={styles.statDivider} />
-        <div className={styles.stat}>
-          <span className={styles.statValue}>{stats.totalSpent.toLocaleString()}</span>
-          <span className={styles.statLabel}>Points Spent</span>
-        </div>
+        {!isDraft && (
+          <>
+            <div className={styles.statDivider} />
+            <div className={styles.stat}>
+              <span className={styles.statValue}>{stats.totalSpent.toLocaleString()}</span>
+              <span className={styles.statLabel}>Points Spent</span>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

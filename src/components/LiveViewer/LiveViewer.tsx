@@ -8,6 +8,7 @@ import { LiveBiddingScreen } from '@/components/LiveBiddingScreen/LiveBiddingScr
 import { LiveSoldOverlay } from '@/components/LiveSoldOverlay/LiveSoldOverlay';
 import { LiveUnsoldOverlay } from '@/components/LiveUnsoldOverlay/LiveUnsoldOverlay';
 import { LiveSquadView } from '@/components/LiveSquadView/LiveSquadView';
+import { LiveDraftScreen } from '@/components/LiveDraftScreen/LiveDraftScreen';
 import { LogoTransition } from '@/components/LogoTransition/LogoTransition';
 import styles from './LiveViewer.module.css';
 
@@ -27,9 +28,9 @@ function WaitingScreen() {
   return (
     <div className={styles.waiting}>
       <div className={styles.waitingIcon} aria-hidden="true">🏏</div>
-      <h1 className={styles.waitingTitle}>Waiting for Auction</h1>
+      <h1 className={styles.waitingTitle}>Waiting to Start</h1>
       <p className={styles.waitingSubtitle}>
-        The admin has not started the auction yet. This screen will update automatically.
+        The event has not started yet. This screen will update automatically.
       </p>
       <div className={styles.waitingDots}>
         <span className={styles.dot} />
@@ -189,6 +190,18 @@ export function LiveViewerApp() {
               <div className={styles.phaseEnter} key="squads">
                 <LiveSquadView
                   teams={state.teams}
+                  soldPlayers={state.soldPlayers}
+                  config={state.config}
+                />
+              </div>
+            )}
+
+            {displayPhase === 'DRAFT' && state.draftState && (
+              <div className={styles.phaseEnter} key="draft">
+                <LiveDraftScreen
+                  draftState={state.draftState}
+                  teams={state.teams}
+                  players={state.players}
                   soldPlayers={state.soldPlayers}
                   config={state.config}
                 />

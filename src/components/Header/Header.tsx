@@ -1,5 +1,6 @@
+import { useRef } from 'react';
 import type { TabId, SoldPlayer } from '@/types';
-import { TABS, getTotalSlots } from '@/constants/auction';
+import { getTabs, getMode, getTotalSlots } from '@/constants/auction';
 import { formatPts } from '@/utils/format';
 import { getTotalSpent } from '@/utils/auction';
 import { useTournament } from '@/context/TournamentContext';
@@ -12,16 +13,27 @@ interface HeaderProps {
   soldPlayers: SoldPlayer[];
   onReset: () => void;
   onEditConfig: () => void;
+  onExportBackup: () => void;
+  onImportBackup: (text: string) => void;
 }
 
-export function Header({ activeTab, onTabChange, soldPlayers, onReset, onEditConfig }: HeaderProps) {
+export function Header({ activeTab, onTabChange, soldPlayers, onReset, onEditConfig, onExportBackup, onImportBackup }: HeaderProps) {
   const { config } = useTournament();
+  const isDraft = getMode(config) === 'draft';
   const totalSpent = getTotalSpent(soldPlayers);
   const totalPlayers = getTotalSlots(config);
+  const importRef = useRef<HTMLInputElement>(null);
 
   // Open the read-only projector view in a second window (same origin, ?mode=live).
   const handleOpenLive = () => {
     window.open(`${window.location.pathname}?mode=live`, 'cap_live_viewer');
+  };
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    file.text().then(onImportBackup).catch(() => onImportBackup(''));
+    e.target.value = ''; // allow re-importing the same file
   };
 
   return (
@@ -39,7 +51,7 @@ export function Header({ activeTab, onTabChange, soldPlayers, onReset, onEditCon
       </div>
 
       <nav className={styles.navTabs} role="navigation" aria-label="Main navigation">
-        {TABS.map((tab) => (
+        {getTabs(getMode(config)).map((tab) => (
           <button
             key={tab.id}
             className={`${styles.navTab} ${activeTab === tab.id ? styles.active : ''}`}
@@ -54,18 +66,22 @@ export function Header({ activeTab, onTabChange, soldPlayers, onReset, onEditCon
 
       <div className={styles.statsWrap} aria-live="polite">
         <div className={styles.statItem}>
-          <span className={styles.statLabel}>Sold</span>
+          <span className={styles.statLabel}>{isDraft ? 'Drafted' : 'Sold'}</span>
           <span className={styles.statValue} style={{ color: 'var(--success)' }}>
             {soldPlayers.length} / {totalPlayers}
           </span>
         </div>
-        <div className={styles.divider} aria-hidden="true" />
-        <div className={styles.statItem}>
-          <span className={styles.statLabel}>Total Spent</span>
-          <span className={styles.statValue} style={{ color: 'var(--accent)' }}>
-            {formatPts(totalSpent)} pts
-          </span>
-        </div>
+        {!isDraft && (
+          <>
+            <div className={styles.divider} aria-hidden="true" />
+            <div className={styles.statItem}>
+              <span className={styles.statLabel}>Total Spent</span>
+              <span className={styles.statValue} style={{ color: 'var(--accent)' }}>
+                {formatPts(totalSpent)} pts
+              </span>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Actions — kept visible at every width (unlike the stats above) */}
@@ -73,6 +89,13 @@ export function Header({ activeTab, onTabChange, soldPlayers, onReset, onEditCon
         <button className={styles.liveBtn} onClick={handleOpenLive} aria-label="Open the live viewer in a new window">
           <Icon name="monitor" size={13} /> Live Viewer
         </button>
+        <button className={styles.iconBtn} onClick={onExportBackup} aria-label="Export a full backup" title="Export backup (JSON)">
+          <Icon name="save" size={14} />
+        </button>
+        <button className={styles.iconBtn} onClick={() => importRef.current?.click()} aria-label="Import a backup" title="Import backup (JSON)">
+          <Icon name="undo" size={14} />
+        </button>
+        <input ref={importRef} type="file" accept="application/json,.json" onChange={handleImportFile} style={{ display: 'none' }} aria-hidden="true" />
         <button className={styles.editConfigBtn} onClick={onEditConfig} aria-label="Edit tournament settings">
           <Icon name="pencil" size={13} /> Edit Config
         </button>

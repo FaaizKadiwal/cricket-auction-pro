@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { Team, SoldPlayer, TournamentConfig, BidValidationResult } from '@/types';
-import { getCategoryStyle, getSquadSize } from '@/constants/auction';
+import { getCategoryStyle, getSquadSize, getMode } from '@/constants/auction';
 import { validateSaleEdit } from '@/utils/auction';
 import { formatPts, teamLabel } from '@/utils/format';
 import { Avatar } from '@/components/Avatar/Avatar';
@@ -24,7 +24,8 @@ export function EditSaleDialog({ sold, teams, soldPlayers, config, onSubmit, onR
   const [priceStr, setPriceStr] = useState<string>(String(sold.finalPrice));
   const [confirmReturn, setConfirmReturn] = useState(false);
 
-  const price     = Number(priceStr);
+  const isDraft   = getMode(config) === 'draft';
+  const price     = isDraft ? 0 : Number(priceStr);
   const catStyle  = getCategoryStyle(config, sold.category);
   const squadSize = getSquadSize(config);
   const targetTeam = teams.find((t) => t.id === teamId);
@@ -56,7 +57,7 @@ export function EditSaleDialog({ sold, teams, soldPlayers, config, onSubmit, onR
     <div className={styles.overlay} role="dialog" aria-modal="true" aria-label="Correct sale" onClick={onClose}>
       <div className={styles.panel} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
-          <div className={styles.title}><Icon name="pencil" size={16} /> Correct Sale</div>
+          <div className={styles.title}><Icon name="pencil" size={16} /> {isDraft ? 'Reassign Player' : 'Correct Sale'}</div>
           <button className={styles.closeBtn} onClick={onClose} aria-label="Close"><Icon name="x" size={16} /></button>
         </div>
 
@@ -82,21 +83,23 @@ export function EditSaleDialog({ sold, teams, soldPlayers, config, onSubmit, onR
           </select>
         </label>
 
-        <label className={styles.field}>
-          <span className={styles.fieldLabel}>Final price (pts)</span>
-          <input
-            className={styles.input}
-            type="number"
-            min={1}
-            value={priceStr}
-            onChange={(e) => setPriceStr(e.target.value)}
-          />
-        </label>
+        {!isDraft && (
+          <label className={styles.field}>
+            <span className={styles.fieldLabel}>Final price (pts)</span>
+            <input
+              className={styles.input}
+              type="number"
+              min={1}
+              value={priceStr}
+              onChange={(e) => setPriceStr(e.target.value)}
+            />
+          </label>
+        )}
 
         {confirmReturn ? (
           <div className={styles.returnArea}>
             <p className={styles.returnWarn}>
-              <Icon name="alert-triangle" size={12} /> Remove this sale and send {sold.name} back to the pool for re-auction?
+              <Icon name="alert-triangle" size={12} /> Remove this {isDraft ? 'pick' : 'sale'} and send {sold.name} back to the pool?
             </p>
             <div className={styles.actions}>
               <button className={styles.cancelBtn} onClick={() => setConfirmReturn(false)}>No, keep</button>
@@ -109,19 +112,19 @@ export function EditSaleDialog({ sold, teams, soldPlayers, config, onSubmit, onR
               <p className={styles.error} role="alert"><Icon name="alert-triangle" size={12} /> {validation.reason}</p>
             ) : (
               <p className={styles.preview}>
-                {(targetTeam ? teamLabel(targetTeam) : `Team ${teamId}`)}: {preview.squadCount}/{squadSize} players · {formatPts(preview.remainingAfter)} pts left after
+                {(targetTeam ? teamLabel(targetTeam) : `Team ${teamId}`)}: {preview.squadCount}/{squadSize} players{isDraft ? '' : ` · ${formatPts(preview.remainingAfter)} pts left after`}
               </p>
             )}
 
             <div className={styles.actions}>
               <button className={styles.cancelBtn} onClick={onClose}>Cancel</button>
               <button className={styles.saveBtn} onClick={handleSave} disabled={!canSave}>
-                <Icon name="save" size={14} /> Save Correction
+                <Icon name="save" size={14} /> {isDraft ? 'Save' : 'Save Correction'}
               </button>
             </div>
 
             <button className={styles.returnLink} onClick={() => setConfirmReturn(true)}>
-              <Icon name="undo" size={12} /> Return to pool (re-auction)
+              <Icon name="undo" size={12} /> Return to pool ({isDraft ? 're-draft' : 're-auction'})
             </button>
           </>
         )}
