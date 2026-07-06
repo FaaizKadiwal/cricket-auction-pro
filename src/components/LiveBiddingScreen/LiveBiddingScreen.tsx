@@ -36,7 +36,7 @@ export function LiveBiddingScreen({ bidding, teams, soldPlayers, config }: LiveB
     if (log.length > prevLogLen.current && log.length > 0) {
       const latest = log[0];
       const prevBid = log.length > 1 ? log[1].bid : player.basePrice;
-      const team = teams.find((t) => t.name === latest.teamName);
+      const team = teams.find((t) => t.id === latest.teamId);
       setBidPop({ teamName: latest.teamName, teamColor: latest.teamColor, teamLogo: team?.logoBase64 ?? null, raise: latest.bid - prevBid });
       const timer = setTimeout(() => setBidPop(null), 3000);
       prevLogLen.current = log.length;
@@ -47,12 +47,12 @@ export function LiveBiddingScreen({ bidding, teams, soldPlayers, config }: LiveB
 
   // Build per-team bid info from log (each team's latest bid + raise + log position)
   const teamBidMap = useMemo(() => {
-    const map = new Map<string, { lastBid: number; raise: number; logIndex: number }>();
+    const map = new Map<number, { lastBid: number; raise: number; logIndex: number }>();
     for (let i = 0; i < log.length; i++) {
       const entry = log[i];
-      if (!map.has(entry.teamName)) {
+      if (!map.has(entry.teamId)) {
         const prevBid = i + 1 < log.length ? log[i + 1].bid : player.basePrice;
-        map.set(entry.teamName, { lastBid: entry.bid, raise: entry.bid - prevBid, logIndex: i });
+        map.set(entry.teamId, { lastBid: entry.bid, raise: entry.bid - prevBid, logIndex: i });
       }
     }
     return map;
@@ -67,7 +67,7 @@ export function LiveBiddingScreen({ bidding, teams, soldPlayers, config }: LiveB
       const slotsLeft = squadSize - squad.length;
       const { cap } = getBidCap(team.id, soldPlayers, config);
       const isLeading = team.id === leadingTeamId;
-      const bidInfo = teamBidMap.get(team.name) ?? null;
+      const bidInfo = teamBidMap.get(team.id) ?? null;
 
       const activeInc = getActiveIncrement(currentBid);
       let capStatus: 'safe' | 'warn' | 'danger' = 'safe';

@@ -200,7 +200,6 @@ src/
 │   ├── LiveViewer/               # Entry point for ?mode=live — orchestrates phase transitions
 │   ├── LiveIdleScreen/           # Idle phase: logo + sold count + team list
 │   ├── LiveBiddingScreen/        # Bidding phase: player card + bid panel + all team cards
-│   ├── LiveBidTicker/            # Scrolling bid log ticker used within LiveBiddingScreen
 │   ├── LiveSoldOverlay/          # SOLD phase: animated player + team + final price reveal
 │   ├── LiveUnsoldOverlay/        # UNSOLD phase: animated stamp + demotion/halve notice
 │   ├── LiveSquadView/            # SQUAD_VIEW phase: full team roster grid

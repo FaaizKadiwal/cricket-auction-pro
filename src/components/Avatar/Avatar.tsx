@@ -21,7 +21,7 @@ export function Avatar({
       <img
         src={src}
         alt={name}
-        className={square ? styles.logoSquare : styles.avatar}
+        className={`${square ? styles.logoSquare : styles.avatar} ${className}`.trim()}
         style={{ ...dim, ...style }}
       />
     );
@@ -47,7 +47,9 @@ export function Avatar({
 // ─── Tiny helper ─────────────────────────────────────────────────────────────
 
 function hexToRgba(hex: string, alpha: number): string {
-  const clean = hex.replace('#', '');
+  let clean = hex.replace('#', '');
+  // Expand 3-digit shorthand (#f80 → ff8800) so short hexes don't fall back to cyan.
+  if (clean.length === 3) clean = clean.split('').map((c) => c + c).join('');
   const r = parseInt(clean.slice(0, 2), 16);
   const g = parseInt(clean.slice(2, 4), 16);
   const b = parseInt(clean.slice(4, 6), 16);

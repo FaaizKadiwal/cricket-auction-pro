@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useTournament } from '@/context/TournamentContext';
 import { formatPts } from '@/utils/format';
-import { downloadRulesPdf } from '@/utils/pdf';
 import { Icon, type IconName } from '@/components/Icon/Icon';
 import styles from './RulesTab.module.css';
 
@@ -22,7 +21,7 @@ export function RulesTab() {
   const totalSlots = config.totalTeams * squadSize;
   const [downloading, setDownloading] = useState(false);
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (downloading) return;
     setDownloading(true);
     try {
@@ -32,6 +31,9 @@ export function RulesTab() {
         'All captains must acknowledge these rules before bidding begins.',
       ].join('\n');
       const filename = `${config.tournamentName} - Auction Rules.pdf`;
+      // Lazy-load the PDF generator (jsPDF + its deps) only on demand so it
+      // stays out of the initial bundle that loads on the projector.
+      const { downloadRulesPdf } = await import('@/utils/pdf');
       downloadRulesPdf(config.tournamentName, subtitle, sections, filename);
     } finally {
       setDownloading(false);

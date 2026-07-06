@@ -28,7 +28,7 @@ export function ImageUpload({
       return;
     }
     if (file.size > MAX_IMAGE_SIZE) {
-      setError('Image must be under 10 MB.');
+      setError(`Image must be under ${Math.round(MAX_IMAGE_SIZE / (1024 * 1024))} MB.`);
       return;
     }
     setError(null);
@@ -62,7 +62,12 @@ export function ImageUpload({
         role="button"
         tabIndex={0}
         aria-label={label ?? 'Upload image'}
-        onKeyDown={(e) => e.key === 'Enter' && inputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            inputRef.current?.click();
+          }
+        }}
       >
         {value ? (
           <>

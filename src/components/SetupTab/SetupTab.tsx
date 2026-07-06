@@ -322,7 +322,11 @@ function PlayerTable({ players, editingPlayerId, onRemove, onEdit }: PlayerTable
                   <button
                     className={styles.removeBtn}
                     onClick={() => onRemove(p.id)}
-                    aria-label={`Remove ${p.name}`}
+                    disabled={p.status === 'sold'}
+                    title={p.status === 'sold' ? 'Undo the sale in the Auction tab before removing this player' : undefined}
+                    aria-label={p.status === 'sold'
+                      ? `${p.name} is sold — undo the sale before removing`
+                      : `Remove ${p.name}`}
                   ><Icon name="x" size={12} /></button>
                 </div>
               </td>
@@ -364,7 +368,10 @@ export function SetupTab({ teams, onTeamsChange, players, onPlayersChange }: Set
 
   const handleAddPlayer = useCallback(
     (partial: Omit<Player, 'id' | 'status'>) => {
-      const newPlayer: Player = { ...partial, id: Date.now(), status: 'pending' };
+      // Monotonic id derived from the current pool — unique and collision-free,
+      // unlike Date.now() which repeats for two adds within the same millisecond.
+      const nextId = players.reduce((max, p) => (p.id > max ? p.id : max), 0) + 1;
+      const newPlayer: Player = { ...partial, id: nextId, status: 'pending' };
       onPlayersChange([...players, newPlayer]);
     },
     [players, onPlayersChange]
@@ -379,6 +386,11 @@ export function SetupTab({ teams, onTeamsChange, players, onPlayersChange }: Set
 
   const handleRemovePlayer = useCallback(
     (id: number) => {
+      // A sold player is removed by undoing its sale in the Auction tab, which
+      // also clears the sold record. Removing it here would strand that record
+      // and desync squads/budgets, so block it (the button is also disabled).
+      const target = players.find((p) => p.id === id);
+      if (target?.status === 'sold') return;
       if (editingPlayer?.id === id) setEditingPlayer(null);
       onPlayersChange(players.filter((p) => p.id !== id));
     },

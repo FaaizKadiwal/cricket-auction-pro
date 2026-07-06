@@ -22,6 +22,10 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
       window.localStorage.setItem(key, JSON.stringify(storedValue));
     } catch {
       console.warn(`useLocalStorage: failed to write key "${key}".`);
+      // Surface the failure so the app can warn the operator — a silent write
+      // failure (usually QuotaExceededError from large base64 images) would
+      // otherwise mean lost progress with no indication.
+      window.dispatchEvent(new CustomEvent('cap:storage-error', { detail: { key } }));
     }
   }, [key, storedValue]);
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { TabId, Team, Player, SoldPlayer, TournamentConfig, DemotionResult } from '@/types';
 import { DEFAULT_TEAM_COLORS, STORAGE_KEYS } from '@/constants/auction';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
@@ -41,6 +41,20 @@ export default function App() {
 
   const { toasts, exitingIds, showToast, dismissToast } = useToast(5000);
   const [showConfigEditor, setShowConfigEditor] = useState(false);
+
+  // Warn the operator if a localStorage write fails (throttled — a burst of
+  // failing writes across keys should surface a single warning, not a flood).
+  const lastStorageWarnRef = useRef(0);
+  useEffect(() => {
+    const handler = () => {
+      const now = Date.now();
+      if (now - lastStorageWarnRef.current < 8000) return;
+      lastStorageWarnRef.current = now;
+      showToast('Storage is full — recent changes may not be saved. Remove some images or reset the tournament to free space.', 'warn');
+    };
+    window.addEventListener('cap:storage-error', handler);
+    return () => window.removeEventListener('cap:storage-error', handler);
+  }, [showToast]);
 
   // Live viewer broadcast (only responds to sync when config exists)
   const broadcast = useBroadcast({ config, teams, players, soldPlayers });
@@ -92,15 +106,20 @@ export default function App() {
     (newConfig: TournamentConfig) => {
       if (!config) return;
 
-      // Propagate category name renames to players (match by index)
+      // Propagate category name renames to players (match by slot index).
+      // A rename is only counted when the old name has genuinely disappeared
+      // from the new list — otherwise a pure reorder (which keeps every name,
+      // just in a different order) would be misread as a rename and corrupt
+      // player categories.
       const oldCats = config.categories;
       const newCats = newConfig.categories;
+      const newCatNames = new Set(newCats.map((c) => c.name));
       let updatedPlayers = players;
       let updatedSoldPlayers = soldPlayers;
 
       oldCats.forEach((oldCat, i) => {
         const newCat = newCats[i];
-        if (newCat && oldCat.name !== newCat.name) {
+        if (newCat && oldCat.name !== newCat.name && !newCatNames.has(oldCat.name)) {
           updatedPlayers = updatedPlayers.map((p) =>
             p.category === oldCat.name ? { ...p, category: newCat.name } : p
           );
@@ -117,6 +136,19 @@ export default function App() {
         updatedTeams = [...updatedTeams, ...extras];
       } else if (newConfig.totalTeams < config.totalTeams) {
         updatedTeams = updatedTeams.slice(0, newConfig.totalTeams);
+        // Safety net: the wizard locks team count once players are sold, but if
+        // teams are removed we must not leave sold records (or players marked
+        // sold) pointing at a team that no longer exists.
+        const validTeamIds = new Set(updatedTeams.map((t) => t.id));
+        const orphanedIds = new Set(
+          updatedSoldPlayers.filter((sp) => !validTeamIds.has(sp.teamId)).map((sp) => sp.id)
+        );
+        if (orphanedIds.size > 0) {
+          updatedSoldPlayers = updatedSoldPlayers.filter((sp) => validTeamIds.has(sp.teamId));
+          updatedPlayers = updatedPlayers.map((p) =>
+            orphanedIds.has(p.id) ? { ...p, status: 'pending' as const } : p
+          );
+        }
       }
 
       setConfig(newConfig);

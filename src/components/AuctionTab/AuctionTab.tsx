@@ -14,6 +14,7 @@ import styles from './AuctionTab.module.css';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface LogEntry {
+  teamId: number;
   teamName: string;
   teamColor: string;
   bid: number;
@@ -88,10 +89,10 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
     setCurrentBid(newBid);
     setLeadingTeamId(teamId);
     setLog((prev) => [
-      { teamName: team.name, teamColor: team.color, bid: newBid, player: currentPlayer.name },
+      { teamId, teamName: team.name, teamColor: team.color, bid: newBid, player: currentPlayer.name },
       ...prev.slice(0, MAX_LOG_ENTRIES - 1),
     ]);
-    broadcast?.broadcastBidUpdate(newBid, teamId, { teamName: team.name, teamColor: team.color, bid: newBid });
+    broadcast?.broadcastBidUpdate(newBid, teamId, { teamId, teamName: team.name, teamColor: team.color, bid: newBid });
   }, [currentPlayer, currentBid, leadingTeamId, teams, soldPlayers, config, onToast, broadcast]);
 
   const handleBasePick = useCallback((teamId: number) => {
@@ -106,10 +107,10 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
     setBidHistory((prev) => [...prev, { bid: currentBid, teamId: leadingTeamId }]);
     setLeadingTeamId(teamId);
     setLog((prev) => [
-      { teamName: team.name, teamColor: team.color, bid: currentBid, player: currentPlayer.name },
+      { teamId, teamName: team.name, teamColor: team.color, bid: currentBid, player: currentPlayer.name },
       ...prev.slice(0, MAX_LOG_ENTRIES - 1),
     ]);
-    broadcast?.broadcastBidUpdate(currentBid, teamId, { teamName: team.name, teamColor: team.color, bid: currentBid });
+    broadcast?.broadcastBidUpdate(currentBid, teamId, { teamId, teamName: team.name, teamColor: team.color, bid: currentBid });
   }, [currentPlayer, currentBid, leadingTeamId, teams, soldPlayers, config, onToast, broadcast]);
 
   const resetStage = useCallback(() => {
@@ -167,13 +168,21 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
   }, [currentPlayer, players, onUnsold, onToast, broadcast]);
 
   const undoLastBid = useCallback(() => {
-    if (bidHistory.length === 0) return;
+    if (bidHistory.length === 0 || !currentPlayer) return;
     const prev = bidHistory[bidHistory.length - 1];
+    const newLog = log.slice(1);
     setBidHistory((h) => h.slice(0, -1));
     setCurrentBid(prev.bid);
     setLeadingTeamId(prev.teamId);
-    setLog((l) => l.slice(1));
-  }, [bidHistory]);
+    setLog(newLog);
+    // Roll the live viewer back to the restored bid state (BID_UPDATE only adds).
+    broadcast?.broadcastBiddingSync({
+      player: currentPlayer,
+      currentBid: prev.bid,
+      leadingTeamId: prev.teamId,
+      log: newLog.map((e) => ({ teamId: e.teamId, teamName: e.teamName, teamColor: e.teamColor, bid: e.bid })),
+    });
+  }, [bidHistory, currentPlayer, log, broadcast]);
 
   const restartBidding = useCallback(() => {
     if (!currentPlayer) return;
@@ -182,7 +191,10 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
     setLog([]);
     setBidHistory([]);
     onToast(`Bidding restarted for ${currentPlayer.name}`, 'warn');
-  }, [currentPlayer, onToast]);
+    // Reuse BIDDING_START to reset the viewer to base with an empty log; phase
+    // stays BIDDING so no logo-transition sting re-fires.
+    broadcast?.broadcastBiddingStart(currentPlayer, currentPlayer.basePrice);
+  }, [currentPlayer, onToast, broadcast]);
 
   const handleUndoSale = useCallback(() => {
     const undone = onUndoLastSale();

@@ -1,4 +1,4 @@
-import { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import type { TournamentConfig } from '@/types';
 import { DEFAULT_CONFIG, getSquadSize } from '@/constants/auction';
 
@@ -22,10 +22,14 @@ interface TournamentProviderProps {
 }
 
 export function TournamentProvider({ config, children }: TournamentProviderProps) {
+  // Memoize so consumers only re-render when config actually changes, not on
+  // every parent (App) re-render during the auction loop.
+  const value = useMemo(
+    () => ({ config, squadSize: getSquadSize(config) }),
+    [config]
+  );
   return (
-    <TournamentContext.Provider
-      value={{ config, squadSize: getSquadSize(config) }}
-    >
+    <TournamentContext.Provider value={value}>
       {children}
     </TournamentContext.Provider>
   );

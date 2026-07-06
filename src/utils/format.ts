@@ -6,7 +6,8 @@ export function formatPts(n: number): string {
 }
 
 /**
- * Format a percentage to integer string
+ * Compute value/total as an integer percentage, clamped to 0–100.
+ * Returns a number (e.g. for style widths and aria-valuenow), not a string.
  */
 export function formatPct(value: number, total: number): number {
   if (total === 0) return 0;

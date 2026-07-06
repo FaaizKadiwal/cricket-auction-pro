@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import type { TournamentConfig, Team, Player, SoldPlayer, Category } from '@/types';
 import type {
-  LiveMessage, SyncStateMessage, BiddingPayload, SoldPayload, ViewerPhase, ChannelMessage,
+  LiveMessage, SyncStateMessage, BiddingPayload, BidLogEntry, SoldPayload, ViewerPhase, ChannelMessage,
 } from '@/types/live';
 import { LIVE_CHANNEL_NAME, MAX_LOG_ENTRIES } from '@/constants/auction';
 
@@ -18,13 +18,14 @@ interface UseBroadcastParams {
 
 export interface BroadcastHandle {
   broadcastBiddingStart: (player: Player, baseBid: number) => void;
-  broadcastBidUpdate:    (currentBid: number, teamId: number, logEntry: { teamName: string; teamColor: string; bid: number }) => void;
+  broadcastBidUpdate:    (currentBid: number, teamId: number, logEntry: BidLogEntry) => void;
   broadcastSold:         (payload: SoldPayload, allSold: SoldPlayer[], allPlayers: Player[]) => void;
   broadcastUnsold:       (player: Player, demoted: boolean, newCategory: Category | undefined, allPlayers: Player[], halvedInPlace?: boolean) => void;
   broadcastBiddingCancel: () => void;
   broadcastShowSquads:   () => void;
   broadcastShowIdle:     () => void;
   broadcastUndoSale:     (allSold: SoldPlayer[], allPlayers: Player[]) => void;
+  broadcastBiddingSync:  (bidding: BiddingPayload) => void;
 }
 
 // ─── Hook ───────────────────────────────────────────────────────────────────
@@ -91,7 +92,7 @@ export function useBroadcast({ config, teams, players, soldPlayers }: UseBroadca
     send({ type: 'BIDDING_START', player, currentBid: baseBid });
   }, [send]);
 
-  const broadcastBidUpdate = useCallback((currentBid: number, teamId: number, logEntry: { teamName: string; teamColor: string; bid: number }) => {
+  const broadcastBidUpdate = useCallback((currentBid: number, teamId: number, logEntry: BidLogEntry) => {
     if (biddingRef.current) {
       biddingRef.current = {
         ...biddingRef.current,
@@ -138,8 +139,16 @@ export function useBroadcast({ config, teams, players, soldPlayers }: UseBroadca
     send({ type: 'UNDO_SALE', soldPlayers: allSold, players: allPlayers });
   }, [send]);
 
+  const broadcastBiddingSync = useCallback((bidding: BiddingPayload) => {
+    biddingRef.current = bidding;
+    lastSoldRef.current = null;
+    phaseRef.current = 'BIDDING';
+    send({ type: 'BIDDING_SYNC', bidding });
+  }, [send]);
+
   return {
     broadcastBiddingStart, broadcastBidUpdate, broadcastSold, broadcastUnsold,
     broadcastBiddingCancel, broadcastShowSquads, broadcastShowIdle, broadcastUndoSale,
+    broadcastBiddingSync,
   };
 }

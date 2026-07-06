@@ -6,11 +6,19 @@ export type ViewerPhase = 'IDLE' | 'BIDDING' | 'SOLD' | 'UNSOLD' | 'SQUAD_VIEW';
 
 // ─── Sub-payloads ───────────────────────────────────────────────────────────
 
+/** A single bid-log entry. `teamId` is the stable identity — names may be blank or duplicated. */
+export interface BidLogEntry {
+  teamId: number;
+  teamName: string;
+  teamColor: string;
+  bid: number;
+}
+
 export interface BiddingPayload {
   player: Player;
   currentBid: number;
   leadingTeamId: number | null;
-  log: Array<{ teamName: string; teamColor: string; bid: number }>;
+  log: BidLogEntry[];
 }
 
 export interface SoldPayload {
@@ -45,7 +53,7 @@ export interface BidUpdateMessage {
   type: 'BID_UPDATE';
   currentBid: number;
   leadingTeamId: number;
-  logEntry: { teamName: string; teamColor: string; bid: number };
+  logEntry: BidLogEntry;
 }
 
 export interface SoldMessage {
@@ -74,6 +82,16 @@ export interface UndoSaleMessage {
   players: Player[];
 }
 
+/**
+ * Replaces the viewer's entire live bidding payload. Used when the admin rolls
+ * the bid back to an arbitrary earlier state (Undo Bid) that the incremental
+ * BID_UPDATE / BIDDING_START messages cannot express.
+ */
+export interface BiddingSyncMessage {
+  type: 'BIDDING_SYNC';
+  bidding: BiddingPayload;
+}
+
 export type LiveMessage =
   | SyncStateMessage
   | BiddingStartMessage
@@ -83,7 +101,8 @@ export type LiveMessage =
   | BiddingCancelMessage
   | ShowSquadsMessage
   | ShowIdleMessage
-  | UndoSaleMessage;
+  | UndoSaleMessage
+  | BiddingSyncMessage;
 
 // ─── Viewer → Admin Request ─────────────────────────────────────────────────
 

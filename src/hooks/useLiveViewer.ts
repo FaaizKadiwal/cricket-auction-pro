@@ -31,7 +31,7 @@ const initialState: ViewerState = {
 
 // ─── Reducer ────────────────────────────────────────────────────────────────
 
-type ViewerAction = LiveMessage | { type: 'AUTO_IDLE' };
+type ViewerAction = LiveMessage;
 
 function viewerReducer(state: ViewerState, action: ViewerAction): ViewerState {
   switch (action.type) {
@@ -96,6 +96,15 @@ function viewerReducer(state: ViewerState, action: ViewerAction): ViewerState {
         players: action.players,
       };
 
+    case 'BIDDING_SYNC':
+      return {
+        ...state,
+        phase: 'BIDDING',
+        bidding: action.bidding,
+        lastSold: null,
+        unsoldInfo: null,
+      };
+
     case 'BIDDING_CANCEL':
       return { ...state, phase: 'IDLE', bidding: null };
 
@@ -113,11 +122,6 @@ function viewerReducer(state: ViewerState, action: ViewerAction): ViewerState {
         soldPlayers: action.soldPlayers,
         players: action.players,
       };
-
-    case 'AUTO_IDLE':
-      return state.phase === 'SOLD' || state.phase === 'UNSOLD'
-        ? { ...state, phase: 'IDLE' }
-        : state;
 
     default:
       return state;
