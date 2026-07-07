@@ -2,8 +2,12 @@ import { useMemo } from 'react';
 import type { TournamentConfig, Team, Player, SoldPlayer } from '@/types';
 import type { DraftState } from '@/types/draft';
 import { getCategoryStyle } from '@/constants/auction';
-import { getPickContext, generatePickOrder, getRoundSchedule } from '@/utils/draft';
+import {
+  getPickContext, generatePickOrder, getRoundSchedule,
+  getDraftRemainingCounts, getUpcomingTeams, getRecentPicks,
+} from '@/utils/draft';
 import { teamLabel } from '@/utils/format';
+import { withAlpha } from '@/utils/color';
 import { Avatar } from '@/components/Avatar/Avatar';
 import styles from './LiveDraftScreen.module.css';
 
@@ -17,7 +21,6 @@ interface LiveDraftScreenProps {
 
 /** Full-screen "on the clock" draft board for the projector (Event Mode, spec §2.20). */
 export function LiveDraftScreen({ draftState, teams, players, soldPlayers, config }: LiveDraftScreenProps) {
-  const T = config.totalTeams;
   const schedule = useMemo(() => getRoundSchedule(config), [config]);
   const pickOrder = useMemo(() => generatePickOrder(config, draftState.baseOrder), [config, draftState.baseOrder]);
   const pickCtx = getPickContext(config, draftState.baseOrder, soldPlayers.length);
@@ -34,25 +37,16 @@ export function LiveDraftScreen({ draftState, teams, players, soldPlayers, confi
   }
 
   const catStyle = getCategoryStyle(config, pickCtx.category);
-  const counters = config.categories
-    .filter((c) => c.draftCount > 0)
-    .map((c) => ({ cat: c.name, remaining: players.filter((p) => p.status === 'pending' && p.category === c.name).length }));
-
-  const upcoming: Team[] = [];
-  for (let i = soldPlayers.length + 1; i < soldPlayers.length + 4 && i < pickCtx.totalPicks; i++) {
-    const tm = teams.find((t) => t.id === pickOrder[Math.floor(i / T)]?.[i % T]);
-    if (tm) upcoming.push(tm);
-  }
-  const lastPicks: { player: Player; team: Team | undefined; round: number }[] = [];
-  for (let i = soldPlayers.length - 1; i >= 0 && lastPicks.length < 5; i--) {
-    lastPicks.push({ player: soldPlayers[i], team: teams.find((t) => t.id === soldPlayers[i].teamId), round: Math.floor(i / T) + 1 });
-  }
+  // Same derivations as the admin DraftBoard — one implementation in utils/draft.
+  const counters = getDraftRemainingCounts(config, players);
+  const upcoming = getUpcomingTeams(config, pickOrder, teams, soldPlayers.length, 3);
+  const lastPicks = getRecentPicks(config, teams, soldPlayers, 5);
 
   return (
     <div className={styles.screen}>
       <div className={styles.metaRow}>
         <span className={styles.round}>ROUND {pickCtx.round}<span className={styles.of}>/{schedule.length}</span></span>
-        <span className={styles.catBadge} style={{ color: catStyle.color, background: catStyle.bg, borderColor: `${catStyle.color}55` }}>{pickCtx.category}</span>
+        <span className={styles.catBadge} style={{ color: catStyle.color, background: catStyle.bg, borderColor: withAlpha(catStyle.color, 0.33) }}>{pickCtx.category}</span>
         <span className={styles.pickNum}>PICK {pickCtx.pickNumber}<span className={styles.of}>/{pickCtx.totalPicks}</span></span>
       </div>
 
@@ -60,7 +54,7 @@ export function LiveDraftScreen({ draftState, teams, players, soldPlayers, confi
         <span className={styles.onClockLabel}>ON THE CLOCK</span>
         {onClock && (
           <>
-            <Avatar src={onClock.logoBase64} name={onClock.name} size={140} color={onClock.color} square style={{ boxShadow: `0 0 60px ${onClock.color}55` }} />
+            <Avatar src={onClock.logoBase64} name={onClock.name} size={140} color={onClock.color} square style={{ boxShadow: `0 0 60px ${withAlpha(onClock.color, 0.33)}` }} />
             <h1 className={styles.teamName} style={{ color: onClock.color }}>{teamLabel(onClock)}</h1>
             {onClock.captain && <div className={styles.captain}>© {onClock.captain}</div>}
           </>
@@ -84,7 +78,7 @@ export function LiveDraftScreen({ draftState, teams, players, soldPlayers, confi
           <span className={styles.sideLabel}>NEXT</span>
           <div className={styles.upcoming}>
             {upcoming.map((t, i) => (
-              <span key={`${t.id}-${i}`} className={styles.upChip} style={{ color: t.color, borderColor: `${t.color}55` }}>{teamLabel(t)}</span>
+              <span key={`${t.id}-${i}`} className={styles.upChip} style={{ color: t.color, borderColor: withAlpha(t.color, 0.33) }}>{teamLabel(t)}</span>
             ))}
           </div>
         </div>

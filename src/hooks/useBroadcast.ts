@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useCallback } from 'react';
 import type { TournamentConfig, Team, Player, SoldPlayer, Category } from '@/types';
 import type { DraftState } from '@/types/draft';
 import type {
-  LiveMessage, SyncStateMessage, BiddingPayload, BidLogEntry, SoldPayload, ViewerPhase, ChannelMessage,
+  LiveMessage, SyncStateMessage, BiddingPayload, BidLogEntry, SoldPayload, UnsoldInfo, ViewerPhase, ChannelMessage,
 } from '@/types/live';
 import { LIVE_CHANNEL_NAME, MAX_LOG_ENTRIES } from '@/constants/auction';
 
@@ -45,6 +45,7 @@ export function useBroadcast({ config, teams, players, soldPlayers, draftState }
   const phaseRef       = useRef<ViewerPhase>('IDLE');
   const biddingRef     = useRef<BiddingPayload | null>(null);
   const lastSoldRef    = useRef<SoldPayload | null>(null);
+  const unsoldInfoRef  = useRef<UnsoldInfo | null>(null);
 
   configRef.current      = config;
   teamsRef.current       = teams;
@@ -80,6 +81,7 @@ export function useBroadcast({ config, teams, players, soldPlayers, draftState }
           phase:       phaseRef.current,
           bidding:     biddingRef.current,
           lastSold:    lastSoldRef.current,
+          unsoldInfo:  unsoldInfoRef.current,
           draftState:  draftStateRef.current,
         };
         ch.postMessage(sync);
@@ -94,6 +96,7 @@ export function useBroadcast({ config, teams, players, soldPlayers, draftState }
   const broadcastBiddingStart = useCallback((player: Player, baseBid: number) => {
     biddingRef.current = { player, currentBid: baseBid, leadingTeamId: null, log: [] };
     lastSoldRef.current = null;
+    unsoldInfoRef.current = null;
     phaseRef.current = 'BIDDING';
     send({ type: 'BIDDING_START', player, currentBid: baseBid });
   }, [send]);
@@ -113,12 +116,14 @@ export function useBroadcast({ config, teams, players, soldPlayers, draftState }
   const broadcastSold = useCallback((payload: SoldPayload, allSold: SoldPlayer[], allPlayers: Player[]) => {
     lastSoldRef.current = payload;
     biddingRef.current = null;
+    unsoldInfoRef.current = null;
     phaseRef.current = 'SOLD';
     send({ type: 'SOLD', soldPayload: payload, soldPlayers: allSold, players: allPlayers });
   }, [send]);
 
   const broadcastUnsold = useCallback((player: Player, demoted: boolean, newCategory: Category | undefined, allPlayers: Player[], halvedInPlace?: boolean) => {
     biddingRef.current = null;
+    unsoldInfoRef.current = { player, demoted, newCategory, halvedInPlace };
     phaseRef.current = 'UNSOLD';
     send({ type: 'UNSOLD', player, demoted, newCategory, halvedInPlace, players: allPlayers });
   }, [send]);
@@ -130,17 +135,20 @@ export function useBroadcast({ config, teams, players, soldPlayers, draftState }
   }, [send]);
 
   const broadcastShowSquads = useCallback(() => {
+    unsoldInfoRef.current = null;
     phaseRef.current = 'SQUAD_VIEW';
     send({ type: 'SHOW_SQUADS' });
   }, [send]);
 
   const broadcastShowIdle = useCallback(() => {
+    unsoldInfoRef.current = null;
     phaseRef.current = 'IDLE';
     send({ type: 'SHOW_IDLE' });
   }, [send]);
 
   const broadcastUndoSale = useCallback((allSold: SoldPlayer[], allPlayers: Player[]) => {
     lastSoldRef.current = null;
+    unsoldInfoRef.current = null;
     phaseRef.current = 'IDLE';
     send({ type: 'UNDO_SALE', soldPlayers: allSold, players: allPlayers });
   }, [send]);
@@ -148,6 +156,7 @@ export function useBroadcast({ config, teams, players, soldPlayers, draftState }
   const broadcastBiddingSync = useCallback((bidding: BiddingPayload) => {
     biddingRef.current = bidding;
     lastSoldRef.current = null;
+    unsoldInfoRef.current = null;
     phaseRef.current = 'BIDDING';
     send({ type: 'BIDDING_SYNC', bidding });
   }, [send]);

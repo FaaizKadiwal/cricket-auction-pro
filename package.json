@@ -1,5 +1,6 @@
 {
   "name": "cricket-auction-pro",
+  "description": "Dual-mode cricket tournament manager — live points auction or turn-based fair draft, with a projector display, CSV import, and full backup. Runs entirely in the browser.",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -7,7 +8,9 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "jspdf": "^4.2.0",
@@ -24,6 +27,7 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
     "typescript": "^5.2.2",
-    "vite": "^5.1.4"
+    "vite": "^5.1.4",
+    "vitest": "^3.2.7"
   }
 }

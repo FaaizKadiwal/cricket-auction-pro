@@ -16,7 +16,8 @@
   /* Text */
   --text: #e8e8f0;
   --text-secondary: #a0a0c0;
-  --muted: #6060a0;
+  /* ≥4.5:1 on all surfaces (WCAG AA for the small labels/hints that use it) */
+  --muted: #7d7dbd;
 
   /* Brand */
   --accent: #00d4ff;
@@ -144,6 +145,22 @@ a {
   white-space: nowrap;
   border: 0;
 }
+
+/* Keyboard skip-link — visually hidden until focused */
+.skip-link {
+  position: fixed;
+  top: -48px;
+  left: 8px;
+  z-index: 2000;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: #000;
+  font-weight: 700;
+  font-size: 13px;
+  transition: top var(--transition-fast);
+}
+.skip-link:focus { top: 8px; }
 
 /* ─── Hide native number input spinners globally ────────────────────────────── */
 input[type='number']::-webkit-outer-spin-button,

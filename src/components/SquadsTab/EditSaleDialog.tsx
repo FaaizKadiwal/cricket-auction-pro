@@ -2,7 +2,9 @@ import { useMemo, useState } from 'react';
 import type { Team, SoldPlayer, TournamentConfig, BidValidationResult } from '@/types';
 import { getCategoryStyle, getSquadSize, getMode } from '@/constants/auction';
 import { validateSaleEdit } from '@/utils/auction';
-import { formatPts, teamLabel } from '@/utils/format';
+import { withAlpha } from '@/utils/color';
+import { formatPts, teamLabel, teamNameById } from '@/utils/format';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { Avatar } from '@/components/Avatar/Avatar';
 import { Icon } from '@/components/Icon/Icon';
 import styles from './EditSaleDialog.module.css';
@@ -23,12 +25,12 @@ export function EditSaleDialog({ sold, teams, soldPlayers, config, onSubmit, onR
   const [teamId, setTeamId]     = useState<number>(sold.teamId);
   const [priceStr, setPriceStr] = useState<string>(String(sold.finalPrice));
   const [confirmReturn, setConfirmReturn] = useState(false);
+  const panelRef = useFocusTrap<HTMLDivElement>(onClose);
 
   const isDraft   = getMode(config) === 'draft';
   const price     = isDraft ? 0 : Number(priceStr);
   const catStyle  = getCategoryStyle(config, sold.category);
   const squadSize = getSquadSize(config);
-  const targetTeam = teams.find((t) => t.id === teamId);
 
   // Live validation — same rule the commit uses, so the preview never lies.
   const validation = useMemo(
@@ -55,7 +57,7 @@ export function EditSaleDialog({ sold, teams, soldPlayers, config, onSubmit, onR
 
   return (
     <div className={styles.overlay} role="dialog" aria-modal="true" aria-label="Correct sale" onClick={onClose}>
-      <div className={styles.panel} onClick={(e) => e.stopPropagation()}>
+      <div ref={panelRef} className={styles.panel} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
           <div className={styles.title}><Icon name="pencil" size={16} /> {isDraft ? 'Reassign Player' : 'Correct Sale'}</div>
           <button className={styles.closeBtn} onClick={onClose} aria-label="Close"><Icon name="x" size={16} /></button>
@@ -66,7 +68,7 @@ export function EditSaleDialog({ sold, teams, soldPlayers, config, onSubmit, onR
           <Avatar src={sold.photoBase64} name={sold.name} size={44} color={catStyle.color} style={{ border: `2px solid ${catStyle.color}` }} />
           <div>
             <div className={styles.playerName}>{sold.name}</div>
-            <span className={styles.catBadge} style={{ color: catStyle.color, background: catStyle.bg, border: `1px solid ${catStyle.color}40` }}>
+            <span className={styles.catBadge} style={{ color: catStyle.color, background: catStyle.bg, border: `1px solid ${withAlpha(catStyle.color, 0.25)}` }}>
               {sold.category}
             </span>
           </div>
@@ -112,7 +114,7 @@ export function EditSaleDialog({ sold, teams, soldPlayers, config, onSubmit, onR
               <p className={styles.error} role="alert"><Icon name="alert-triangle" size={12} /> {validation.reason}</p>
             ) : (
               <p className={styles.preview}>
-                {(targetTeam ? teamLabel(targetTeam) : `Team ${teamId}`)}: {preview.squadCount}/{squadSize} players{isDraft ? '' : ` · ${formatPts(preview.remainingAfter)} pts left after`}
+                {teamNameById(teams, teamId)}: {preview.squadCount}/{squadSize} players{isDraft ? '' : ` · ${formatPts(preview.remainingAfter)} pts left after`}
               </p>
             )}
 

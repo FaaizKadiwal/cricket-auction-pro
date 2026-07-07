@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState, memo } from 'react';
 import type { Team, SoldPlayer, BidValidationResult } from '@/types';
 import { getCategoryStyle, getMode } from '@/constants/auction';
 import { getSquad, getSpent, getCategoryNeeds } from '@/utils/auction';
-import { formatPts, teamLabel } from '@/utils/format';
+import { formatPts, teamLabel, teamNameById } from '@/utils/format';
 import { useTournament } from '@/context/TournamentContext';
 import { Avatar } from '@/components/Avatar/Avatar';
 import { Icon } from '@/components/Icon/Icon';
@@ -203,8 +203,7 @@ export function SquadsTab({ teams, soldPlayers, onEditSale, onReturnToPool, onTo
       if (!editingSale) return { valid: false };
       const result = onEditSale(editingSale.id, teamId, price);
       if (result.valid) {
-        const team = teams.find((t) => t.id === teamId);
-        const dest = team ? teamLabel(team) : `Team ${teamId}`;
+        const dest = teamNameById(teams, teamId);
         onToast(isDraft ? `${editingSale.name} reassigned to ${dest}` : `${editingSale.name} → ${dest} for ${formatPts(price)} pts`, 'ok');
       } else if (result.reason) {
         onToast(result.reason, 'warn');

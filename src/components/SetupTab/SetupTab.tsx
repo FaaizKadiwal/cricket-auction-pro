@@ -3,6 +3,7 @@ import type { Team, Player, Category, ValidationError, ToastType } from '@/types
 import { getCategoryStyle, getCategoryNames, getTotalSlots, getMode } from '@/constants/auction';
 import { validatePlayerForm, countByCategory } from '@/utils/auction';
 import { formatPts } from '@/utils/format';
+import { withAlpha } from '@/utils/color';
 import { downloadFile } from '@/utils/export';
 import {
   parsePlayersCsv, parseTeamsCsv, buildPlayersTemplate, buildTeamsTemplate,
@@ -361,7 +362,7 @@ function PlayerTable({ players, editingPlayerId, onRemove, onEdit }: PlayerTable
               <td>
                 <span
                   className={styles.catBadge}
-                  style={{ background: `${color}20`, color, border: `1px solid ${color}40` }}
+                  style={{ background: withAlpha(color, 0.125), color, border: `1px solid ${withAlpha(color, 0.25)}` }}
                 >
                   {p.category}
                 </span>
@@ -600,16 +601,16 @@ export function SetupTab({ teams, onTeamsChange, players, onPlayersChange, onToa
         </div>
       </div>
 
-      {/* Sub-nav */}
-      <div className={styles.subNav} role="tablist">
+      {/* Sub-nav — toggle buttons, not a full ARIA tab widget (no arrow-key
+          navigation or tabpanel wiring), so aria-pressed is the honest semantic */}
+      <div className={styles.subNav} role="group" aria-label="Setup sections">
         {([
             { id: 'teams' as View,   label: isDraft ? 'Franchises & Captains' : 'Teams & Captains', icon: 'shield' as const },
             { id: 'players' as View, label: 'Player Pool',       icon: 'user'   as const },
           ]).map(({ id, label, icon }) => (
           <button
             key={id}
-            role="tab"
-            aria-selected={view === id}
+            aria-pressed={view === id}
             className={`${styles.subNavBtn} ${view === id ? styles.subNavBtnActive : ''}`}
             onClick={() => setView(id)}
           ><Icon name={icon} size={14} /> {label}</button>

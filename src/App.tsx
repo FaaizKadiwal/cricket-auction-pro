@@ -371,6 +371,7 @@ export default function App() {
   return (
     <TournamentProvider config={config}>
       <div className={styles.app}>
+        <a href="#main-content" className="skip-link">Skip to main content</a>
         <Header
           activeTab={activeTab}
           onTabChange={setActiveTab}

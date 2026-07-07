@@ -8,7 +8,8 @@ import {
   makeSeed, shuffleTeams, assignCaptainsToTeams, getDraftSetupErrors,
   getCaptainDrawErrors, getDraftReadiness,
 } from '@/utils/draft';
-import { teamLabel } from '@/utils/format';
+import { teamLabel, teamNameById } from '@/utils/format';
+import { withAlpha } from '@/utils/color';
 import { buildDraftCsv, buildDraftJson, downloadFile } from '@/utils/export';
 import { useTournament } from '@/context/TournamentContext';
 import { Avatar } from '@/components/Avatar/Avatar';
@@ -262,7 +263,7 @@ function PreviewScreen({ teams, players, draftState, onDraftStateChange, onToast
         <h2 className={styles.sectionTitle}>Captains</h2>
         <div className={styles.captainRowPreview}>
           {teams.map((team) => (
-            <div key={team.id} className={styles.captainChip} style={{ borderColor: `${team.color}55` }}>
+            <div key={team.id} className={styles.captainChip} style={{ borderColor: withAlpha(team.color, 0.33) }}>
               <Avatar src={team.captainBase64} name={team.captain} size={24} color={team.color} />
               <span className={styles.captainChipCap}>{team.captain || '—'}</span>
               <span className={styles.captainChipTeam} style={{ color: team.color }}>{teamLabel(team)}</span>
@@ -278,7 +279,7 @@ function PreviewScreen({ teams, players, draftState, onDraftStateChange, onToast
           {schedule.map((cat, i) => {
             const cs = getCategoryStyle(config, cat);
             return (
-              <div key={i} className={styles.roundBadge} style={{ color: cs.color, background: cs.bg, borderColor: `${cs.color}40` }}>
+              <div key={i} className={styles.roundBadge} style={{ color: cs.color, background: cs.bg, borderColor: withAlpha(cs.color, 0.25) }}>
                 <span className={styles.roundNum}>R{i + 1}</span>
                 {cat}
               </div>
@@ -306,7 +307,7 @@ function PreviewScreen({ teams, players, draftState, onDraftStateChange, onToast
                 return (
                   <tr key={f.teamId}>
                     <td className={styles.slotCell}>S{i + 1}</td>
-                    <td style={{ color: team?.color }}>{team ? teamLabel(team) : `Team ${f.teamId}`}</td>
+                    <td style={{ color: team?.color }}>{teamNameById(teams, f.teamId)}</td>
                     {catNames.map((c) => <td key={c} className={styles.numCell}>{f.perCategory[c] ?? 0}</td>)}
                     <td className={styles.numCell} style={{ fontWeight: 700 }}>{f.overall}</td>
                   </tr>

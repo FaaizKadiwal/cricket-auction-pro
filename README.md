@@ -1,6 +1,13 @@
 # Cricket Auction Pro
 
-A professional, production-grade tournament draft management system built with **React 18 + TypeScript + Vite**. Runs entirely in the browser — no backend, no database, no accounts.
+A professional tournament player-acquisition manager for cricket leagues, built with **React 18 + TypeScript + Vite**. Runs entirely in the browser — no backend, no database, no accounts.
+
+It supports **two tournament modes**, chosen in the setup wizard:
+
+- **Auction** — teams bid points on players, with real-time budget caps, tiered increments, and demotion rules.
+- **Draft** — teams pick players in turns with **no bidding**: a seeded random captain draw, a seeded order shuffle, a fairness-verified snake/balanced pick schedule, and a finalized read-only result.
+
+Both modes drive a full-screen **live projector display** in a second window, and both persist every change instantly to `localStorage` (a refresh resumes exactly where you were).
 
 ---
 
@@ -12,32 +19,31 @@ npm run dev
 # Open http://localhost:5173
 ```
 
----
-
 ## Available Scripts
 
-| Command           | Description                             |
-|-------------------|-----------------------------------------|
-| `npm run dev`     | Start local dev server with HMR         |
-| `npm run build`   | TypeScript type-check + production build|
-| `npm run preview` | Serve the production build locally      |
-| `npm run lint`    | ESLint strict pass (0 warnings allowed) |
-
----
+| Command              | Description                                    |
+|----------------------|------------------------------------------------|
+| `npm run dev`        | Start local dev server with HMR                |
+| `npm run build`      | TypeScript type-check + production build       |
+| `npm run preview`    | Serve the production build locally             |
+| `npm run lint`       | ESLint strict pass (0 warnings allowed)        |
+| `npm test`           | Run the unit tests (Vitest)                    |
+| `npm run test:watch` | Tests in watch mode                            |
 
 ## Tech Stack
 
-| Layer        | Technology                              |
-|--------------|-----------------------------------------|
-| UI Framework | React 18 — functional components, hooks |
-| Language     | TypeScript 5 (strict mode)              |
-| Build Tool   | Vite 5                                  |
-| Styling      | CSS Modules + CSS custom properties     |
-| State        | `useState` + `useCallback` (no library) |
-| Persistence  | `localStorage` via `useLocalStorage`    |
-| Live Viewer  | Browser `BroadcastChannel` API          |
-| PDF Export   | jsPDF                                   |
-| Linting      | ESLint + `@typescript-eslint`           |
+| Layer        | Technology                                       |
+|--------------|--------------------------------------------------|
+| UI Framework | React 18 — functional components, hooks          |
+| Language     | TypeScript 5 (strict mode)                       |
+| Build Tool   | Vite 5                                           |
+| Styling      | CSS Modules + design tokens (CSS custom props)   |
+| State        | `useState` + `useCallback` in `App.tsx` (no lib) |
+| Persistence  | `localStorage` via `useLocalStorage`             |
+| Live Viewer  | Browser `BroadcastChannel` API                   |
+| PDF Export   | jsPDF (lazy-loaded)                              |
+| Testing      | Vitest (pure-logic suites: draft engine, CSV)    |
+| Linting      | ESLint + `@typescript-eslint` (max-warnings 0)   |
 
 ---
 
@@ -45,178 +51,94 @@ npm run dev
 
 ### 1 · Config Wizard (`ConfigScreen`)
 
-First launch shows a 3-step wizard:
-
-- **Step 1 — Tournament**: name, logo, number of teams, players per team (captain included), starting budget per team, minimum bid reserve per slot.
-- **Step 2 — Categories**: configure category names (default: Gold / Silver / Bronze), colors, per-team min/max limits, and base prices.
-- **Step 3 — Review & Launch**: summary before committing.
-
-The wizard also doubles as an in-progress **Edit Config** panel (accessible from the header after launch), which safely propagates any category renames to existing players and adjusts team count without losing auction data.
+3-step wizard on first launch: tournament name/logo, **mode (Auction or Draft)**, team count, players per team, budget + minimum bid reserve (auction only), and fully configurable categories (names, colours, per-team min/max quotas in auction, exact per-team pick counts in draft). Re-opens later as **Edit Config** — structural fields lock once players have been acquired.
 
 ### 2 · Setup Tab
 
-Configure each team (name, color, logo, captain, captain photo) and build the player pool (name, category, base price, photo, optional description). Images are resized client-side via Canvas to base64 JPEG before storage.
+Teams (name, colour, logo) and the player pool (name, category, base price in auction, photo, description). In **draft mode** the captains are entered as a *separate unpaired pool* — the draw pairs them with franchises later.
 
-### 3 · Auction Tab
+**Bulk CSV import** for both views: a `Template` button downloads a ready-to-fill CSV (using your real category names / team count), and `Import CSV` parses, validates, de-dupes, and shows a confirmation summary before applying. Prepare the sheet in Excel and *Save As → CSV*.
 
-The live bidding stage:
+### 3a · Auction Tab (auction mode)
 
-- Select a player from the pool to open bidding.
-- Per-team panels show real-time budget, slots remaining, and a computed **bid cap** (see formula below). Bids that would breach the cap are blocked.
-- Bid increment scales automatically with the current price (see Bid Increments below).
-- Actions: **SOLD** (locks player to leading team), **Unsold** (triggers demotion/halving), **Undo Bid**, **Restart Bidding**, **Cancel**, **Undo Last Sale**.
-- A filterable player pool table and a running bid log sit below the stage.
-- Sidebar shows every team's budget bar, squad fill, and category quotas at a glance.
+Live bidding stage: per-team panels with real-time **bid caps** (`remainingBudget − slotsAfterWin × minBidReserve`), tiered increments, SOLD confirmation dialog, unsold → demotion/halving, undo bid / restart / undo last sale, searchable pool, and a bid log.
+
+### 3b · Draft Tab (draft mode)
+
+Five phases, each gated only by what it actually needs:
+
+1. **Captain Assignment** — one click randomly pairs every captain with a franchise (seeded, auditable, re-drawable); confirm to lock.
+2. **Draft Order** — seeded shuffle of the base order; the seed is displayed for auditability.
+3. **Preview** — locked order, per-round category schedule, and a **fairness table** of pick-position totals. Start Draft is gated on a complete, valid player pool.
+4. **Drafting** — full on-the-clock board: current team, category-scoped pool with search, pick confirmation, undo, per-team progress, remaining-per-category counters, round/pick matrix, recent picks.
+5. **Finalized** — read-only lock, with **CSV and JSON results export**.
+
+Pick order is a generalized **snake** for any team count; for the 6-team / 2-3-2 shape it automatically uses a **Balanced Custom Grid** with proven fairness totals (Gold/Bronze 7 each, Silver 10–11, overall 24–25, spread ≤ 1). The engine is pure (`src/utils/draft.ts`) and covered by simulation tests across many tournament shapes.
 
 ### 4 · Squads Tab
 
-Read-only roster overview — all teams side by side showing their captain and every auctioned player with sale price.
+Roster overview for all teams. In auction mode each acquired player has a **Correct Sale** action (reassign team / fix price, or return to the pool) — validated against squad size, category limits, and budget. Draft squads are corrected via Undo on the board instead.
 
 ### 5 · Rules Tab
 
-Fully dynamic official rules page, generated from live tournament config. Exports a formatted PDF via jsPDF.
+Dynamic rules page generated from the live tournament config (auction or draft variant), with a formatted **PDF export**.
 
 ---
 
 ## Live Viewer (Second Screen)
 
-Open a second browser tab/window to `http://localhost:5173/?mode=live` to show a full-screen broadcast display.
+Open `http://localhost:5173/?mode=live` in a second window (the header's **Live Viewer** button does this) and put it on the projector. The admin window drives it over the **BroadcastChannel** API — same origin, same machine, no server.
 
-The admin window and viewer window communicate via the **BroadcastChannel API** (same origin, no server required). The viewer polls for a state sync every 3 seconds until connected, then renders animated phase transitions:
+| Phase        | Screen                                                        |
+|--------------|---------------------------------------------------------------|
+| `IDLE`       | Tournament logo + progress + team list                        |
+| `BIDDING`    | Player card + live bid + all team budget panels               |
+| `SOLD`       | Animated sold overlay (player, team, price)                   |
+| `UNSOLD`     | Unsold overlay with demotion / base-halved notice             |
+| `SQUAD_VIEW` | Full squad grid                                               |
+| `DRAFT`      | **On-the-clock draft board** (round, team, counters, recents) |
 
-| Phase              | Screen shown                                              | Duration   |
-|--------------------|-----------------------------------------------------------|------------|
-| `IDLE`             | Tournament logo + sold player count + team list           | Persistent |
-| `LOGO_TRANSITION`  | Animated logo sting between phases                        | 2 s        |
-| `BIDDING`          | Player card + live current bid + all team budget panels   | Persistent |
-| `SOLD`             | Sold overlay — player photo, winning team, final price    | 10 s       |
-| `UNSOLD`           | Unsold overlay — player photo, stamp / demotion notice    | 5 s        |
-| `SQUAD_VIEW`       | Full squad grid across all teams                          | Persistent |
-
-The admin controls the phase via **Show Squads** / **Show Logo** buttons visible when no bidding is active.
+The viewer requests a snapshot until connected, then stays current via incremental event messages. Type on the projector screens scales fluidly with resolution (1080p → 4K).
 
 ---
 
-## Key Domain Concepts
+## Data Safety
 
-### Squad Size
-
-```
-squadSize = playersPerTeam − 1
-```
-
-The captain is pre-assigned, not auctioned. This derivation drives all slot-count calculations throughout the codebase.
-
-### Bid Increments
-
-| Current bid   | Increment |
-|---------------|-----------|
-| Below 400 pts | +20       |
-| 400 – 999 pts | +50       |
-| 1 000 – 1 999 | +100      |
-| 2 000+        | +200      |
-
-### Bid Cap Formula
-
-```
-maxBid = remainingBudget − (slotsAfterWin × minBidReserve)
-```
-
-`minBidReserve` is set per-tournament in the config wizard. The system enforces this in real time — bids that would leave a team unable to fill their remaining slots are rejected.
-
-**Last-pick exception**: when a team is bidding on their final slot, `slotsAfterWin = 0`, so they may spend their full remaining budget.
-
-### Unsold Player Mechanics
-
-When a player goes unsold, the system applies one of two rules in order:
-
-1. **Demotion** — if the player is not in the lowest category, they move to the next lower tier with a base price equal to the minimum base price of that tier (or `minBidReserve` if the tier is empty).
-2. **Halve in place** — if already in the lowest category, their base price is halved (floor of `basePrice / 2`, minimum 1 pt) and they remain pending.
-
-Players marked unsold permanently (no more demotions possible) are shown in the sidebar's Unsold section.
-
-### Category System
-
-Each category (Gold / Silver / Bronze by default, fully configurable) has:
-
-- A display color used throughout the UI.
-- Optional per-team **min** and **max** quotas (0 = unlimited).
-- A default **base price** used when building new players.
-
-Category limits are enforced at bid time — a team that has reached its max for a category cannot bid on a player in that category.
-
----
-
-## Data Persistence
-
-All state (config, teams, players, sold records, active tab) auto-syncs to `localStorage` under `cap_` prefixed keys (defined in `src/constants/auction.ts`). A page refresh restores the full in-progress auction.
-
-**To reset**: use the **Reset** button in the header, or clear `localStorage` manually via DevTools → Application → Local Storage.
+- **Auto-persistence** — every change is written to `localStorage` (`cap_`-prefixed keys); refresh/crash resumes in place. Storage-full conditions surface a warning toast.
+- **Full backup** — the header's save icon exports the *entire* tournament (config, teams, players, sales/picks, draft state) as a single JSON file; the import icon restores it behind a confirmation dialog with schema validation.
+- **Results export** — finalized drafts export CSV + JSON (with seeds for auditability); auction rules export as PDF.
+- **Reset** — guarded by a type-safe confirmation dialog.
 
 ---
 
 ## Project Structure
 
-```
+```text
 src/
-├── types/
-│   ├── index.ts            # All domain interfaces (Team, Player, SoldPlayer, TournamentConfig…)
-│   └── live.ts             # BroadcastChannel message types + ViewerPhase state machine
-│
-├── constants/
-│   └── auction.ts          # Business constants, storage keys, getCategoryStyle, bid increments
-│
-├── utils/
-│   ├── auction.ts          # Pure functions: getBidCap, validateBid, getSquad, getSpent, getCatCount
-│   ├── format.ts           # formatPts, formatPct, getBarColorToken
-│   ├── image.ts            # Canvas-based image resize + initials extraction
-│   └── pdf.ts              # jsPDF rules export
-│
-├── hooks/
-│   ├── useLocalStorage.ts  # Generic type-safe localStorage sync → [value, setValue, removeValue]
-│   ├── useToast.ts         # Notification queue with enter/exit animations
-│   ├── useBroadcast.ts     # Admin-side BroadcastChannel publisher
-│   └── useLiveViewer.ts    # Viewer-side BroadcastChannel subscriber + state reducer
-│
-├── context/
-│   └── TournamentContext.tsx  # Read-only config + squadSize provided to deep components
-│
-├── styles/
-│   └── globals.css         # Design tokens (CSS variables), reset, scrollbar, focus rings
-│
-├── components/
-│   ├── ErrorBoundary.tsx         # Class component — catches render errors gracefully
-│   ├── Avatar/                   # Circular/square image or initials fallback
-│   ├── Icon/                     # SVG icon set (single source, name → path)
-│   ├── ImageUpload/              # Drag-and-drop / click image uploader with canvas resize
-│   ├── Toast/                    # Accessible notification stack with enter/exit animations
-│   ├── Header/                   # Sticky nav bar — tabs, sold count, budget spent, edit/reset
-│   ├── ConfigScreen/             # 3-step tournament config wizard (also used for edit mode)
-│   ├── SetupTab/                 # Team editor + player pool CRUD
-│   ├── AuctionTab/               # Live bidding stage + player pool table + sidebar
-│   │   └── BidTeamPanel.tsx      # Per-team bid card (co-located, not a separate folder)
-│   ├── SquadsTab/                # Final roster grid
-│   ├── RulesTab/                 # Dynamic rules page + PDF export
-│   ├── LiveViewer/               # Entry point for ?mode=live — orchestrates phase transitions
-│   ├── LiveIdleScreen/           # Idle phase: logo + sold count + team list
-│   ├── LiveBiddingScreen/        # Bidding phase: player card + bid panel + all team cards
-│   ├── LiveSoldOverlay/          # SOLD phase: animated player + team + final price reveal
-│   ├── LiveUnsoldOverlay/        # UNSOLD phase: animated stamp + demotion/halve notice
-│   ├── LiveSquadView/            # SQUAD_VIEW phase: full team roster grid
-│   └── LogoTransition/           # Animated logo sting between live phases
-│
-├── App.tsx        # Root — all state coordination, localStorage wiring, tab routing
-├── App.module.css
-└── main.tsx       # React DOM entry — detects ?mode=live to mount LiveViewerApp
+├── types/            # All domain interfaces (index.ts), live-viewer messages (live.ts), draft types (draft.ts)
+├── constants/        # auction.ts (business constants, storage keys, tabs) · draft.ts (Balanced Grid)
+├── utils/            # Pure logic — auction.ts (caps/validation), draft.ts (schedule/order/fairness/draw),
+│                     # csvImport.ts (RFC-4180 parser + validators), export.ts (CSV/JSON), backup.ts,
+│                     # format.ts, color.ts, image.ts, pdf.ts
+├── hooks/            # useLocalStorage, useToast, useBroadcast (admin), useLiveViewer (viewer), useFocusTrap
+├── context/          # TournamentContext (read-only config + squadSize)
+├── styles/           # globals.css — design tokens, reset, a11y helpers
+├── components/       # One folder per component (.tsx + .module.css)
+│   ├── ConfigScreen/ SetupTab/ AuctionTab/ DraftTab/ SquadsTab/ RulesTab/ Header/
+│   ├── LiveViewer/ LiveBiddingScreen/ LiveSoldOverlay/ LiveUnsoldOverlay/
+│   ├── LiveSquadView/ LiveIdleScreen/ LiveDraftScreen/ LogoTransition/
+│   └── ConfirmDialog/ CategoryPills/ Avatar/ Icon/ ImageUpload/ Toast/ ErrorBoundary
+├── App.tsx           # Root — all state coordination + localStorage wiring
+└── main.tsx          # Entry — ?mode=live mounts the viewer app instead
 ```
 
----
+Tests live next to the logic they verify: `src/utils/draft.test.ts` (fairness/simulation battery) and `src/utils/csvImport.test.ts`.
 
 ## Architecture Notes
 
-- **No external state library** — all state lives in `App.tsx` via `useState` / `useCallback` and flows down as props. `TournamentContext` provides read-only config + `squadSize` to avoid deep prop drilling.
-- **`@/` path alias** maps to `src/` (configured in both `tsconfig.json` and `vite.config.ts`). All imports use this alias — never relative `../` paths from components.
-- **Zero CSS-in-JS** — every component has a co-located `.module.css` file. Design tokens are CSS custom properties in `globals.css`. Dark theme only.
-- **Live viewer isolation** — `main.tsx` checks `?mode=live` and mounts `LiveViewerApp` instead of `App`. The two windows share zero React state; communication is entirely via `BroadcastChannel`.
-- **Fonts** — Bebas Neue (display), DM Sans (body), JetBrains Mono (mono) — loaded via Google Fonts `<link>` in `index.html` to avoid render-blocking `@import`.
-- **No test framework** is configured. There are no unit or integration tests.
+- **All state lives in `App.tsx`** and flows down as props; `TournamentContext` provides read-only config. No state library by design at this scale.
+- **Pure logic lives in `utils/`**, never in components — the draft engine, bid math, validation, and parsers are all plain testable functions.
+- **`@/` path alias** → `src/` (tsconfig + vite config). No relative `../` imports from components.
+- **Design tokens** in `globals.css`; component styles in co-located CSS Modules; dynamic per-team/category colours via inline `style` and `withAlpha()`. Dark theme only.
+- **A drafted player is a `SoldPlayer` with `finalPrice: 0`** — squads, projector, search, undo, and exports reuse the same data path in both modes.
+- **Scope by design:** single operator, one machine, projector via a second window. There is no multi-user editing, cross-device sync, or server — see the stack notes above before deploying it as a hosted service.

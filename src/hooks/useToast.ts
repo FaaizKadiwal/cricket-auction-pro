@@ -4,6 +4,8 @@ import type { ToastMessage, ToastType } from '@/types';
 let toastIdCounter = 0;
 
 const EXIT_DURATION = 300;
+/** Cap the visible stack — a burst of warnings drops the oldest instead of filling the screen. */
+const MAX_TOASTS = 4;
 
 export function useToast(durationMs = 5000) {
   const [toasts,     setToasts]     = useState<ToastMessage[]>([]);
@@ -21,7 +23,8 @@ export function useToast(durationMs = 5000) {
     (msg: string, type: ToastType = 'ok') => {
       toastIdCounter = (toastIdCounter + 1) % 1_000_000;
       const id = toastIdCounter;
-      setToasts((prev) => [...prev, { id, msg, type }]);
+      // Drop the oldest beyond the cap (its pending dismiss timeout no-ops harmlessly).
+      setToasts((prev) => [...prev, { id, msg, type }].slice(-MAX_TOASTS));
       setTimeout(() => removeToast(id), durationMs);
     },
     [durationMs, removeToast]

@@ -50,9 +50,9 @@ function viewerReducer(state: ViewerState, action: ViewerAction): ViewerState {
         bidding: action.bidding,
         lastSold: action.lastSold,
         draftState: action.draftState,
-        // Preserve unsoldInfo if phase stays UNSOLD — sync fires every 3 s and
-        // doesn't carry unsoldInfo, so clearing it would blank the overlay mid-display.
-        unsoldInfo: action.phase === 'UNSOLD' ? state.unsoldInfo : null,
+        // SYNC now carries unsoldInfo (so a viewer connecting mid-UNSOLD renders
+        // the overlay); keep any local copy as fallback while the phase holds.
+        unsoldInfo: action.unsoldInfo ?? (action.phase === 'UNSOLD' ? state.unsoldInfo : null),
       };
 
     case 'DRAFT_CLOCK':
@@ -159,20 +159,26 @@ export function useLiveViewer(): ViewerState {
     }
     channelRef.current = ch;
 
+    // Retry sync every 3 s ONLY until the first snapshot arrives. After that,
+    // incremental messages keep us current — re-requesting would make the admin
+    // re-serialize the whole state (all base64 images) every 3 s forever.
+    let interval: ReturnType<typeof setInterval> | null = setInterval(() => {
+      ch.postMessage({ type: 'SYNC_REQUEST' });
+    }, 3000);
+    const stopPolling = () => {
+      if (interval !== null) { clearInterval(interval); interval = null; }
+    };
+
     ch.onmessage = (e: MessageEvent<LiveMessage>) => {
+      if (e.data?.type === 'SYNC_STATE') stopPolling();
       dispatch(e.data);
     };
 
     // Request sync on connect
     ch.postMessage({ type: 'SYNC_REQUEST' });
 
-    // Retry sync every 3s until connected
-    const interval = setInterval(() => {
-      ch.postMessage({ type: 'SYNC_REQUEST' });
-    }, 3000);
-
     return () => {
-      clearInterval(interval);
+      stopPolling();
       ch.close();
     };
   }, []);

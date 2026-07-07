@@ -1,10 +1,12 @@
 import { useState, useMemo, useCallback } from 'react';
 import type { Team, Player, SoldPlayer, Category, DemotionResult } from '@/types';
 import type { BidIncrement } from '@/constants/auction';
+import type { BidLogEntry } from '@/types/live';
 import type { BroadcastHandle } from '@/hooks/useBroadcast';
 import { getCategoryStyle, getActiveIncrement, getTotalSlots, MAX_LOG_ENTRIES, LOW_BUDGET_THRESHOLD } from '@/constants/auction';
 import { getBidCap, getSquad, getSpent, getCapStatus, getCategoryNeeds, getTotalSpent, countByCategory, validateBid } from '@/utils/auction';
 import { formatPts, formatPct, getBarColorToken, teamLabel } from '@/utils/format';
+import { withAlpha } from '@/utils/color';
 import { useTournament } from '@/context/TournamentContext';
 import { Avatar } from '@/components/Avatar/Avatar';
 import { Icon } from '@/components/Icon/Icon';
@@ -15,11 +17,8 @@ import styles from './AuctionTab.module.css';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface LogEntry {
-  teamId: number;
-  teamName: string;
-  teamColor: string;
-  bid: number;
+/** Admin-side bid-log row — the broadcast BidLogEntry plus the player it was for. */
+interface LogEntry extends BidLogEntry {
   player: string;
 }
 
@@ -296,7 +295,7 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
                         style={{
                           color:      catStyle.color,
                           background: catStyle.bg,
-                          border:     `1px solid ${catStyle.color}40`,
+                          border:     `1px solid ${withAlpha(catStyle.color, 0.25)}`,
                         }}
                       >
                         ◆ {currentPlayer.category.toUpperCase()} CATEGORY ◆
@@ -386,7 +385,7 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
                       style={{
                         background:  filterCat === cat ? 'var(--accent)' : 'var(--surface2)',
                         color:       filterCat === cat ? '#000' : catStyle?.color ?? 'var(--text)',
-                        borderColor: filterCat === cat ? 'var(--accent)' : catStyle ? `${catStyle.color}60` : 'var(--border)',
+                        borderColor: filterCat === cat ? 'var(--accent)' : catStyle ? withAlpha(catStyle.color, 0.375) : 'var(--border)',
                       }}
                     >{cat}</button>
                   );
@@ -431,7 +430,7 @@ export function AuctionTab({ teams, players, soldPlayers, onSell, onUnsold, onUn
                         <td>
                           <span
                             className={styles.catBadgePill}
-                            style={{ background: `${color}20`, color, border: `1px solid ${color}40` }}
+                            style={{ background: withAlpha(color, 0.125), color, border: `1px solid ${withAlpha(color, 0.25)}` }}
                           >{p.category}</span>
                         </td>
                         <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>

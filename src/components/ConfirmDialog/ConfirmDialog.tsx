@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import styles from './ConfirmDialog.module.css';
 
 interface ConfirmDialogProps {
@@ -11,21 +12,32 @@ interface ConfirmDialogProps {
   onCancel: () => void;
 }
 
-/** Generic guarded-action dialog (dark, keyboard-dismissable via overlay/Escape-free). */
+/**
+ * Generic guarded-action dialog. Focus is trapped inside, Escape cancels, and
+ * focus returns to the trigger on close. Danger dialogs deliberately focus
+ * CANCEL first so a stray Enter can never fire a destructive action.
+ */
 export function ConfirmDialog({
   title, message, confirmLabel = 'Confirm', cancelLabel = 'Cancel', tone = 'default', onConfirm, onCancel,
 }: ConfirmDialogProps) {
+  const panelRef = useFocusTrap<HTMLDivElement>(onCancel);
+  const focusCancelFirst = tone === 'danger';
+
   return (
     <div className={styles.overlay} role="dialog" aria-modal="true" aria-label={title} onClick={onCancel}>
-      <div className={styles.panel} onClick={(e) => e.stopPropagation()}>
+      <div ref={panelRef} className={styles.panel} onClick={(e) => e.stopPropagation()}>
         <div className={styles.title}>{title}</div>
         <div className={styles.message}>{message}</div>
         <div className={styles.actions}>
-          <button className={styles.cancelBtn} onClick={onCancel}>{cancelLabel}</button>
+          <button
+            className={styles.cancelBtn}
+            onClick={onCancel}
+            data-autofocus={focusCancelFirst || undefined}
+          >{cancelLabel}</button>
           <button
             className={`${styles.confirmBtn} ${tone === 'danger' ? styles.confirmDanger : tone === 'success' ? styles.confirmSuccess : ''}`}
             onClick={onConfirm}
-            autoFocus
+            data-autofocus={!focusCancelFirst || undefined}
           >{confirmLabel}</button>
         </div>
       </div>

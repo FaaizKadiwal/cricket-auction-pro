@@ -2,7 +2,7 @@ import type { TournamentConfig, Team, SoldPlayer } from '@/types';
 import type { DraftState } from '@/types/draft';
 import { getRoundSchedule } from '@/utils/draft';
 import { getSquad } from '@/utils/auction';
-import { teamLabel } from '@/utils/format';
+import { teamLabel, teamNameById } from '@/utils/format';
 
 export interface DraftExportInput {
   config: TournamentConfig;
@@ -11,11 +11,6 @@ export interface DraftExportInput {
   draftState: DraftState;
   generatedAt: string; // ISO timestamp — passed in (Date is a side effect the caller owns)
 }
-
-const nameOf = (teams: Team[], id: number): string => {
-  const t = teams.find((x) => x.id === id);
-  return t ? teamLabel(t) : `Team ${id}`;
-};
 
 /** Quote a CSV field when it contains a comma, quote, or newline (RFC-4180). */
 export function csvEscape(v: string): string {
@@ -34,7 +29,7 @@ export function buildDraftCsv({ config, teams, soldPlayers }: DraftExportInput):
       String(i + 1),
       String(r + 1),
       schedule[r] ?? sp.category,
-      nameOf(teams, sp.teamId),
+      teamNameById(teams, sp.teamId),
       team?.captain ?? '',
       sp.name,
       sp.soldAt ?? '',
@@ -54,7 +49,7 @@ export function buildDraftJson({ config, teams, soldPlayers, draftState, generat
       pick: i + 1,
       round: r + 1,
       category: schedule[r] ?? sp.category,
-      team: nameOf(teams, sp.teamId),
+      team: teamNameById(teams, sp.teamId),
       player: sp.name,
       timestamp: sp.soldAt ?? null,
     };
@@ -73,7 +68,7 @@ export function buildDraftJson({ config, teams, soldPlayers, draftState, generat
       generatedAt,
       seed: draftState.seed,
       captainSeed: draftState.captainSeed,
-      baseOrder: draftState.baseOrder.map((id) => nameOf(teams, id)),
+      baseOrder: draftState.baseOrder.map((id) => teamNameById(teams, id)),
       rosters,
       history,
     },

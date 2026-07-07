@@ -33,6 +33,15 @@ export interface SoldPayload {
 
 // ─── Admin → Viewer Messages ────────────────────────────────────────────────
 
+/** Unsold-overlay details, carried by both UNSOLD and SYNC_STATE (so a viewer
+ *  that connects mid-UNSOLD doesn't render a blank stage). */
+export interface UnsoldInfo {
+  player: Player;
+  demoted: boolean;
+  newCategory?: Category;
+  halvedInPlace?: boolean;
+}
+
 export interface SyncStateMessage {
   type: 'SYNC_STATE';
   config: TournamentConfig;
@@ -42,6 +51,7 @@ export interface SyncStateMessage {
   phase: ViewerPhase;
   bidding: BiddingPayload | null;
   lastSold: SoldPayload | null;
+  unsoldInfo: UnsoldInfo | null;
   draftState: DraftState | null;
 }
 

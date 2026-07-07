@@ -4,7 +4,8 @@ import { DEFAULT_CONFIG, getSquadSize, getTotalSlots } from '@/constants/auction
 import { validateConfig } from '@/utils/auction';
 import { validateDraftConfig } from '@/utils/draft';
 import { formatPts } from '@/utils/format';
-import { darken } from '@/utils/color';
+import { darken, withAlpha } from '@/utils/color';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { ImageUpload } from '@/components/ImageUpload/ImageUpload';
 import { Icon } from '@/components/Icon/Icon';
 import styles from './ConfigScreen.module.css';
@@ -294,9 +295,9 @@ function Step2({ draft, onChange, errors, setErrors, existingPlayers, lockStruct
         {cats.map((cat, i) => {
           const nameErr = getErr(errors, `cat_name_${i}`);
           return (
-            <div key={i} className={styles.catCard} style={{ borderColor: `${cat.color}40` }}>
+            <div key={i} className={styles.catCard} style={{ borderColor: withAlpha(cat.color, 0.25) }}>
               <div className={styles.catCardHeader}>
-                <div className={styles.catTierBadge} style={{ background: cat.bgColor, color: cat.color, borderColor: `${cat.color}30` }}>
+                <div className={styles.catTierBadge} style={{ background: cat.bgColor, color: cat.color, borderColor: withAlpha(cat.color, 0.19) }}>
                   Tier {i + 1}
                 </div>
                 <div className={styles.catActions}>
@@ -478,7 +479,7 @@ function Step3({ draft, mode }: Step3Props) {
       {/* Dynamic category summary */}
       <div className={styles.catSummaryRow}>
         {draft.categories.map((cat, i) => (
-          <div key={i} className={styles.catSummaryChip} style={{ borderColor: `${cat.color}40`, color: cat.color }}>
+          <div key={i} className={styles.catSummaryChip} style={{ borderColor: withAlpha(cat.color, 0.25), color: cat.color }}>
             <span className={styles.catSummaryDot} style={{ background: cat.color }} />
             <span className={styles.catSummaryName}>{cat.name}</span>
             <span className={styles.catSummaryLimits}>
@@ -524,6 +525,9 @@ export function ConfigScreen({
   const [errors, setErrors] = useState<ValidationError[]>([]);
 
   const isEdit = mode === 'edit';
+  // Trap focus in the wizard panel; Escape closes only the edit overlay
+  // (the first-launch wizard has nothing to fall back to).
+  const panelRef = useFocusTrap<HTMLDivElement>(isEdit ? onCancel : undefined);
 
   function updateDraft(partial: Partial<TournamentConfig>) {
     setDraft((d) => ({ ...d, ...partial }));
@@ -577,7 +581,7 @@ export function ConfigScreen({
 
   return (
     <div className={styles.overlay}>
-      <div className={styles.panel} role="dialog" aria-modal="true" aria-label={isEdit ? 'Edit tournament settings' : 'Tournament configuration'}>
+      <div ref={panelRef} className={styles.panel} role="dialog" aria-modal="true" aria-label={isEdit ? 'Edit tournament settings' : 'Tournament configuration'}>
 
         {/* Header */}
         <div className={styles.panelHeader}>

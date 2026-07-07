@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { Team, Player } from '@/types';
+import type { Player } from '@/types';
 import { getSquadSize, getCategoryStyle } from '@/constants/auction';
-import { getPickContext, generatePickOrder, getRoundSchedule, getDraftAvailablePlayers } from '@/utils/draft';
+import {
+  getPickContext, generatePickOrder, getRoundSchedule, getDraftAvailablePlayers,
+  getDraftRemainingCounts, getUpcomingTeams, getRecentPicks,
+} from '@/utils/draft';
 import { getSquad } from '@/utils/auction';
 import { teamLabel } from '@/utils/format';
+import { withAlpha } from '@/utils/color';
 import { useTournament } from '@/context/TournamentContext';
 import { Avatar } from '@/components/Avatar/Avatar';
 import { Icon } from '@/components/Icon/Icon';
@@ -25,9 +29,7 @@ export function DraftBoard({ teams, players, soldPlayers, draftState, onDraftSta
   const [confirmingFinalize, setConfirmingFinalize] = useState(false);
 
   // Remaining (undrafted) players per category — spec §2.12.
-  const counters = config.categories
-    .filter((c) => c.draftCount > 0)
-    .map((c) => ({ cat: c.name, remaining: players.filter((p) => p.status === 'pending' && p.category === c.name).length }));
+  const counters = getDraftRemainingCounts(config, players);
 
   // Push the live "on the clock" board to the projector on mount and after every
   // pick/undo (Event Mode). The 3 s SYNC is the backstop if the viewer joins late.
@@ -86,19 +88,9 @@ export function DraftBoard({ teams, players, soldPlayers, draftState, onDraftSta
     setPending(null);
   };
 
-  // Next few teams on the clock.
-  const upcoming: Team[] = [];
-  for (let i = soldPlayers.length + 1; i < soldPlayers.length + 4 && i < pickCtx.totalPicks; i++) {
-    const tm = teams.find((t) => t.id === pickOrder[Math.floor(i / T)]?.[i % T]);
-    if (tm) upcoming.push(tm);
-  }
-
-  // Recent picks, newest first.
-  const lastPicks: { player: Player; team: Team | undefined; round: number; category: string }[] = [];
-  for (let i = soldPlayers.length - 1; i >= 0 && lastPicks.length < 6; i--) {
-    const r = Math.floor(i / T);
-    lastPicks.push({ player: soldPlayers[i], team: teams.find((t) => t.id === soldPlayers[i].teamId), round: r + 1, category: schedule[r] });
-  }
+  // Next few teams on the clock + recent picks (shared with the projector board).
+  const upcoming = getUpcomingTeams(config, pickOrder, teams, soldPlayers.length, 3);
+  const lastPicks = getRecentPicks(config, teams, soldPlayers, 6);
 
   return (
     <main className={styles.page} aria-label="Draft board">
@@ -106,7 +98,7 @@ export function DraftBoard({ teams, players, soldPlayers, draftState, onDraftSta
       <section className={styles.clockBar} aria-live="polite">
         <div className={styles.clockMeta}>
           <span className={styles.clockRound}>Round {pickCtx.round}<span className={styles.clockOf}>/{schedule.length}</span></span>
-          <span className={styles.clockPill} style={{ color: catStyle.color, background: catStyle.bg, borderColor: `${catStyle.color}40` }}>{pickCtx.category}</span>
+          <span className={styles.clockPill} style={{ color: catStyle.color, background: catStyle.bg, borderColor: withAlpha(catStyle.color, 0.25) }}>{pickCtx.category}</span>
           <span className={styles.clockPickNum}>Pick {pickCtx.pickNumber}<span className={styles.clockOf}>/{pickCtx.totalPicks}</span></span>
         </div>
 
@@ -128,7 +120,7 @@ export function DraftBoard({ teams, players, soldPlayers, draftState, onDraftSta
             <div className={styles.upcoming}>
               <span className={styles.upcomingLabel}>Next</span>
               {upcoming.map((t, i) => (
-                <span key={`${t.id}-${i}`} className={styles.upcomingChip} style={{ color: t.color, borderColor: `${t.color}50` }}>{teamLabel(t)}</span>
+                <span key={`${t.id}-${i}`} className={styles.upcomingChip} style={{ color: t.color, borderColor: withAlpha(t.color, 0.31) }}>{teamLabel(t)}</span>
               ))}
             </div>
           )}
@@ -156,7 +148,7 @@ export function DraftBoard({ teams, players, soldPlayers, draftState, onDraftSta
         {counters.map(({ cat, remaining }) => {
           const cs = getCategoryStyle(config, cat);
           return (
-            <span key={cat} className={styles.counterPill} style={{ color: cs.color, background: cs.bg, borderColor: `${cs.color}40` }}>
+            <span key={cat} className={styles.counterPill} style={{ color: cs.color, background: cs.bg, borderColor: withAlpha(cs.color, 0.25) }}>
               {cat} <strong>{remaining}</strong>
             </span>
           );

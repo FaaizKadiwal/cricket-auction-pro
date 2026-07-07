@@ -12,6 +12,12 @@ export function teamLabel(team: Pick<Team, 'name' | 'id'>): string {
   return team.name.trim() || `Team ${team.id}`;
 }
 
+/** teamLabel by id — same "Team {id}" fallback when the team is missing or unnamed. */
+export function teamNameById(teams: Team[], id: number): string {
+  const team = teams.find((t) => t.id === id);
+  return team ? teamLabel(team) : `Team ${id}`;
+}
+
 /**
  * Compute value/total as an integer percentage, clamped to 0–100.
  * Returns a number (e.g. for style widths and aria-valuenow), not a string.

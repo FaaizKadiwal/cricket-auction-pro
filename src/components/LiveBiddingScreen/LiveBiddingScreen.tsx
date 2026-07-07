@@ -3,6 +3,7 @@ import type { TournamentConfig, Team, SoldPlayer } from '@/types';
 import type { BiddingPayload } from '@/types/live';
 import { getCategoryStyle, getActiveIncrement, getSquadSize } from '@/constants/auction';
 import { formatPts, teamLabel } from '@/utils/format';
+import { withAlpha } from '@/utils/color';
 import { getBidCap, getSquad, getSpent, getCapStatus } from '@/utils/auction';
 import { Avatar } from '@/components/Avatar/Avatar';
 import styles from './LiveBiddingScreen.module.css';
@@ -93,7 +94,7 @@ export function LiveBiddingScreen({ bidding, teams, soldPlayers, config }: LiveB
       <div className={styles.leftPanel}>
         <div className={styles.playerCard}>
           {/* Category badge */}
-          <div className={styles.categoryBadge} style={{ color: catStyle.color, background: catStyle.bg, borderColor: `${catStyle.color}40` }}>
+          <div className={styles.categoryBadge} style={{ color: catStyle.color, background: catStyle.bg, borderColor: withAlpha(catStyle.color, 0.25) }}>
             {player.category.toUpperCase()} CATEGORY
           </div>
 
@@ -193,7 +194,7 @@ export function LiveBiddingScreen({ bidding, teams, soldPlayers, config }: LiveB
                       {teamLabel(team)}
                     </span>
                     {isLeading && (
-                      <span className={styles.leadBadge} style={{ color: team.color, borderColor: `${team.color}60` }}>LEADING</span>
+                      <span className={styles.leadBadge} style={{ color: team.color, borderColor: withAlpha(team.color, 0.375) }}>LEADING</span>
                     )}
                   </div>
                   {/* Bid amount (right side) */}

@@ -1,4 +1,4 @@
-import type { TournamentConfig, Category, Player, Team, ValidationError } from '@/types';
+import type { TournamentConfig, Category, Player, Team, SoldPlayer, ValidationError } from '@/types';
 import type { PickContext, SlotFairness } from '@/types/draft';
 import { getSquadSize } from '@/constants/auction';
 import { BALANCED_GRID, BALANCED_GRID_TEAMS, BALANCED_GRID_GROUPS } from '@/constants/draft';
@@ -116,6 +116,65 @@ export function getPickContext(config: TournamentConfig, baseOrder: number[], pi
 /** Undrafted players in the given category (draft picks are category-scoped by round). */
 export function getDraftAvailablePlayers(players: Player[], category: Category): Player[] {
   return players.filter((p) => p.status === 'pending' && p.category === category);
+}
+
+// ─── Shared board derivations (admin DraftBoard + projector LiveDraftScreen) ──
+
+/** Remaining undrafted players per drafted category — the "X left" counters (spec §2.12). */
+export function getDraftRemainingCounts(
+  config: TournamentConfig,
+  players: Player[],
+): { cat: Category; remaining: number }[] {
+  return config.categories
+    .filter((c) => c.draftCount > 0)
+    .map((c) => ({ cat: c.name, remaining: getDraftAvailablePlayers(players, c.name).length }));
+}
+
+/** The next `count` teams on the clock after `picksMade`, in pick order. */
+export function getUpcomingTeams(
+  config: TournamentConfig,
+  pickOrder: number[][],
+  teams: Team[],
+  picksMade: number,
+  count: number,
+): Team[] {
+  const T = config.totalTeams;
+  const totalPicks = getDraftTotalPicks(config);
+  const out: Team[] = [];
+  for (let i = picksMade + 1; i < picksMade + 1 + count && i < totalPicks; i++) {
+    const tm = teams.find((t) => t.id === pickOrder[Math.floor(i / T)]?.[i % T]);
+    if (tm) out.push(tm);
+  }
+  return out;
+}
+
+export interface RecentPick {
+  player: SoldPlayer;
+  team: Team | undefined;
+  round: number;
+  category: Category;
+}
+
+/** The last `count` picks, newest first, with their round + scheduled category. */
+export function getRecentPicks(
+  config: TournamentConfig,
+  teams: Team[],
+  soldPlayers: SoldPlayer[],
+  count: number,
+): RecentPick[] {
+  const T = config.totalTeams;
+  const schedule = getRoundSchedule(config);
+  const out: RecentPick[] = [];
+  for (let i = soldPlayers.length - 1; i >= 0 && out.length < count; i--) {
+    const r = Math.floor(i / T);
+    out.push({
+      player: soldPlayers[i],
+      team: teams.find((t) => t.id === soldPlayers[i].teamId),
+      round: r + 1,
+      category: schedule[r] ?? soldPlayers[i].category,
+    });
+  }
+  return out;
 }
 
 // ─── Fairness ─────────────────────────────────────────────────────────────────
